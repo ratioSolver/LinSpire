@@ -2,7 +2,6 @@
 #include "lin.hpp"
 #include "inf_rational.hpp"
 #include "json.hpp"
-#include <vector>
 
 namespace linspire
 {
