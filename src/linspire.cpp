@@ -8,6 +8,23 @@ namespace linspire
         return variables.size() - 1;
     }
 
+    bool solver::new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict) noexcept
+    {
+        utils::lin expr = lhs - rhs;
+
+        switch (expr.vars.size())
+        {
+        case 0: // the expression is a constant..
+            return is_negative(expr.known_term) || (strict && is_zero(expr.known_term));
+        case 1:
+        { // the expression is a single variable..
+        }
+        default:
+        { // the expression is a general linear expression..
+        }
+        }
+    }
+
     json::json solver::var::to_json() const noexcept
     {
         json::json j = linspire::to_json(val);

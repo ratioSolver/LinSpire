@@ -10,7 +10,7 @@ namespace linspire
   public:
     [[nodiscard]] utils::var new_var(const utils::rational &lb = utils::rational::negative_infinite, const utils::rational &ub = utils::rational::positive_infinite) noexcept;
 
-    void new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false);
+    [[nodiscard]] bool new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false) noexcept;
 
   private:
     class var
