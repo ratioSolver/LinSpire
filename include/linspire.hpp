@@ -20,9 +20,9 @@ namespace linspire
      */
     [[nodiscard]] utils::var new_var(const utils::inf_rational &lb = utils::inf_rational(utils::rational::negative_infinite), const utils::inf_rational &ub = utils::inf_rational(utils::rational::positive_infinite)) noexcept;
 
-    [[nodiscard]] inline utils::inf_rational lb(const utils::var v) const noexcept { return vars[v].lb; }
-    [[nodiscard]] inline utils::inf_rational ub(const utils::var v) const noexcept { return vars[v].ub; }
-    [[nodiscard]] inline utils::inf_rational val(const utils::var v) const noexcept { return vars[v].val; }
+    [[nodiscard]] inline utils::inf_rational lb(const utils::var x) const noexcept { return vars[x].lb; }
+    [[nodiscard]] inline utils::inf_rational ub(const utils::var x) const noexcept { return vars[x].ub; }
+    [[nodiscard]] inline utils::inf_rational val(const utils::var x) const noexcept { return vars[x].val; }
     [[nodiscard]] inline utils::inf_rational lb(const utils::lin &l) const noexcept
     {
       utils::inf_rational b(l.known_term);
@@ -53,8 +53,12 @@ namespace linspire
     friend json::json to_json(const solver &s) noexcept;
 
   private:
-    bool set_lb(const utils::var v, const utils::inf_rational &val) noexcept;
-    bool set_ub(const utils::var v, const utils::inf_rational &val) noexcept;
+    [[nodiscard]] bool is_basic(const utils::var v) const noexcept { return tableau.count(v); }
+
+    [[nodiscard]] bool set_lb(const utils::var x, const utils::inf_rational &v) noexcept;
+    [[nodiscard]] bool set_ub(const utils::var x, const utils::inf_rational &v) noexcept;
+
+    void update(const utils::var x, const utils::inf_rational &v) noexcept;
 
     class var
     {

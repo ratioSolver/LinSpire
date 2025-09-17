@@ -17,6 +17,7 @@ void test0()
     LOG_DEBUG(to_string(s));
     assert(s.lb(x0) == utils::inf_rational(2));
     assert(s.ub(x0) == utils::inf_rational(2));
+    assert(s.val(x0) == utils::inf_rational(2));
 }
 
 int main()

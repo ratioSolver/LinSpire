@@ -21,18 +21,18 @@ namespace linspire
             return is_zero(expr.known_term);
         case 1: // the expression is a single variable..
         {
-            const auto [v, c] = *expr.vars.cbegin();
+            const auto [x, c] = *expr.vars.cbegin();
             assert(c != 0);
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term) / c; // the right-hand side of the constraint is the division of the negation of the known term by the coefficient..
             // we can set both the lower and upper bound of the variable to the right-hand side of the constraint..
-            return set_lb(v, c_right) && set_ub(v, c_right);
+            return set_lb(x, c_right) && set_ub(x, c_right);
         }
         default: // the expression is a general linear expression..
         {        // we remove the basic variables from the expression and replace them with their corresponding linear expressions in the tableau
             std::vector<utils::var> vs;
             vs.reserve(expr.vars.size());
-            for ([[maybe_unused]] const auto &[v, c] : expr.vars)
-                vs.push_back(v);
+            for ([[maybe_unused]] const auto &[x, c] : expr.vars)
+                vs.push_back(x);
             for (const auto &v : vs)
                 if (tableau.find(v) != tableau.cend())
                 {
@@ -47,13 +47,13 @@ namespace linspire
                 return is_zero(expr.known_term);
             case 1: // the expression is a single variable..
             {
-                const auto [v, c] = *expr.vars.cbegin();
+                const auto [x, c] = *expr.vars.cbegin();
                 assert(c != 0);
                 const utils::inf_rational c_right = utils::inf_rational(-expr.known_term) / c; // the right-hand side of the constraint is the division of the negation of the known term by the coefficient..
                 if (lb(expr) > c_right || ub(expr) < c_right)
                     return false; // the variable's bounds are inconsistent with the constraint..
                 // we can set both the lower and upper bound of the variable to the right-hand side of the constraint..
-                return set_lb(v, c_right) && set_ub(v, c_right);
+                return set_lb(x, c_right) && set_ub(x, c_right);
             }
             default: // the expression is still a general linear expression..
                 const utils::inf_rational c_right = utils::inf_rational(-expr.known_term);
@@ -78,26 +78,26 @@ namespace linspire
             return is_negative(expr.known_term) || (strict && is_zero(expr.known_term));
         case 1: // the expression is a single variable..
         {
-            const auto [v, c] = *expr.vars.cbegin();
+            const auto [x, c] = *expr.vars.cbegin();
             assert(c != 0);
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0) / c; // the right-hand side of the constraint is the division of the negation of the known term minus an infinitesimal by the coefficient..
             if (is_positive(c))
-                return set_lb(v, c_right); // we are in the case `c * v < c_right`..
+                return set_lb(x, c_right); // we are in the case `c * v < c_right`..
             else
-                return set_ub(v, c_right); // we are in the case `c * v > c_right`..
+                return set_ub(x, c_right); // we are in the case `c * v > c_right`..
         }
         default: // the expression is a general linear expression..
         {        // we remove the basic variables from the expression and replace them with their corresponding linear expressions in the tableau
             std::vector<utils::var> vs;
             vs.reserve(expr.vars.size());
-            for ([[maybe_unused]] const auto &[v, c] : expr.vars)
-                vs.push_back(v);
-            for (const auto &v : vs)
-                if (tableau.find(v) != tableau.cend())
+            for ([[maybe_unused]] const auto &[x, c] : expr.vars)
+                vs.push_back(x);
+            for (const auto &x : vs)
+                if (tableau.find(x) != tableau.cend())
                 {
-                    auto c = expr.vars.at(v);
-                    expr.vars.erase(v);
-                    expr += c * tableau.at(v);
+                    auto c = expr.vars.at(x);
+                    expr.vars.erase(x);
+                    expr += c * tableau.at(x);
                 }
             // after substituting the basic variables, we check if the expression is now a single variable or a constant
             switch (expr.vars.size())
@@ -106,13 +106,13 @@ namespace linspire
                 return is_negative(expr.known_term) || (strict && is_zero(expr.known_term));
             case 1: // the expression is a single variable..
             {
-                const auto [v, c] = *expr.vars.cbegin();
+                const auto [x, c] = *expr.vars.cbegin();
                 assert(c != 0);
                 const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0) / c; // the right-hand side of the constraint is the division of the negation of the known term minus an infinitesimal by the coefficient
                 if (is_positive(c))
-                    return set_lb(v, c_right); // we are in the case `c * v < c_right`..
+                    return set_lb(x, c_right); // we are in the case `c * v < c_right`..
                 else
-                    return set_ub(v, c_right); // we are in the case `c * v > c_right`..
+                    return set_ub(x, c_right); // we are in the case `c * v > c_right`..
             }
             default: // the expression is still a general linear expression..
                 const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0);
@@ -126,23 +126,37 @@ namespace linspire
         }
     }
 
-    bool solver::set_lb(const utils::var v, const utils::inf_rational &val) noexcept
+    bool solver::set_lb(const utils::var x, const utils::inf_rational &v) noexcept
     {
-        assert(v < vars.size());
-        if (val <= lb(v))
+        assert(x < vars.size());
+        if (v <= lb(x))
             return true; // no update needed..
-        else if (val > ub(v))
+        else if (v > ub(x))
             return false; // inconsistent bounds..
-        vars[v].lb = val;
+        vars[x].lb = v;
+        if (val(x) < v && !is_basic(x))
+            update(x, v);
+        return true;
     }
-    bool solver::set_ub(const utils::var v, const utils::inf_rational &val) noexcept
+    bool solver::set_ub(const utils::var x, const utils::inf_rational &v) noexcept
     {
-        assert(v < vars.size());
-        if (val >= ub(v))
+        assert(x < vars.size());
+        if (v >= ub(x))
             return true; // no update needed..
-        else if (val < lb(v))
+        else if (v < lb(x))
             return false; // inconsistent bounds..
-        vars[v].ub = val;
+        vars[x].ub = v;
+        if (val(x) > v && !is_basic(x))
+            update(x, v);
+        return true;
+    }
+
+    void solver::update(const utils::var x, const utils::inf_rational &v) noexcept
+    {
+        assert(x < vars.size());
+        assert(!is_basic(x));
+        assert(v >= lb(x) && v <= ub(x));
+        vars[x].val = v;
     }
 
     std::string solver::var::to_string() const noexcept
