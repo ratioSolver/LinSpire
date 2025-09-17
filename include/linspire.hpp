@@ -61,6 +61,8 @@ namespace linspire
 
     void update(const utils::var x, const utils::inf_rational &v) noexcept;
 
+    void pivot_and_update(const utils::var x, const utils::var y, const utils::inf_rational &v) noexcept;
+
     void pivot(const utils::var x, const utils::var y) noexcept;
 
     void new_row(const utils::var x, utils::lin &&l) noexcept;

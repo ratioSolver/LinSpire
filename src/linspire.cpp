@@ -162,12 +162,89 @@ namespace linspire
         vars[x].val = v;
     }
 
+    void solver::pivot_and_update(const utils::var x, const utils::var y, const utils::inf_rational &v) noexcept
+    {
+        assert(x < vars.size());
+        assert(y < vars.size());
+        assert(is_basic(x));
+        assert(!is_basic(y));
+        assert(tableau.at(x).vars.count(y));
+        assert(v >= lb(y) && v <= ub(y));
+
+        const auto theta = (v - val(x)) / tableau.at(x).vars.at(y);
+        vars[x].val = v;
+        vars[y].val += theta;
+
+        // the tableau rows containing `y` as a non-basic variable..
+        for (const auto &c : t_watches[y])
+            if (c != x)
+            { // x_c += a_cy * theta..
+                vars[c].val += tableau.at(c).vars.at(y) * theta;
+            }
+
+        pivot(x, y);
+    }
+
+    void solver::pivot(const utils::var x, const utils::var y) noexcept
+    {
+        assert(x < vars.size());
+        assert(y < vars.size());
+        assert(is_basic(x));
+        assert(!is_basic(y));
+        assert(tableau.at(x).vars.count(y));
+        assert(t_watches.at(x).empty());
+
+        // we remove the row from the watches
+        for ([[maybe_unused]] const auto &[v, c] : tableau[x].vars)
+        {
+            assert(t_watches.at(v).count(x));
+            t_watches.at(v).erase(x);
+        }
+
+        // we rewrite `x = ...` as `y = ...`
+        utils::lin l = std::move(tableau.at(x));
+        utils::rational cc = l.vars.at(y);
+        l.vars.erase(y);
+        l /= -cc;
+        l.vars.emplace(x, utils::rational::one / cc);
+        tableau.erase(x);
+
+        // we update the rows that contain `y`
+        for (auto &r : t_watches.at(y))
+        {
+            auto &c_l = tableau.at(r);
+            assert(c_l.known_term == utils::rational::zero);
+            cc = c_l.vars.at(y);
+            c_l.vars.erase(y);
+            for (const auto &[v, c] : l.vars)
+                if (const auto trm_it = c_l.vars.find(v); trm_it == c_l.vars.cend())
+                {                                // `v` is not in the linear expression of `r`, so we add it
+                    c_l.vars.emplace(v, c * cc); // we add `c * cc` to the linear expression of `r`
+                    t_watches[v].insert(r);      // we add `r` to the watches of `v`
+                }
+                else
+                {
+                    trm_it->second += c * cc;
+                    if (trm_it->second == 0)
+                    {                           // if the coefficient of `v` is zero, we remove the term from the linear expression
+                        c_l.vars.erase(trm_it); // we remove `v` from the linear expression of `r`
+                        t_watches[v].erase(r);  // we remove `r` from the watches of `v`
+                    }
+                }
+            LOG_TRACE("x" << std::to_string(r) << " = " << to_string(c_l));
+        }
+        t_watches.at(y).clear();
+
+        // we add the new row `y = ...`
+        new_row(y, std::move(l));
+    }
+
     void solver::new_row(const utils::var x, utils::lin &&l) noexcept
     {
         assert(x < vars.size());
         assert(!is_basic(x));
         for (const auto &[v, _] : l.vars)
-            t_watches[v].insert(x);
+            t_watches.at(v).insert(x);
         tableau.emplace(x, std::move(l));
     }
 
