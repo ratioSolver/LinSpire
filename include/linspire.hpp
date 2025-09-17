@@ -18,21 +18,50 @@ namespace linspire
      * @param ub The upper bound of the variable (default: positive infinity).
      * @return A new instance of utils::var representing the variable.
      */
-    [[nodiscard]] utils::var new_var(const utils::rational &lb = utils::rational::negative_infinite, const utils::rational &ub = utils::rational::positive_infinite) noexcept;
+    [[nodiscard]] utils::var new_var(const utils::inf_rational &lb = utils::inf_rational(utils::rational::negative_infinite), const utils::inf_rational &ub = utils::inf_rational(utils::rational::positive_infinite)) noexcept;
 
-    [[nodiscard]] bool new_eq(const utils::lin &lhs, const utils::lin &rhs) noexcept;
+    [[nodiscard]] inline utils::inf_rational lb(const utils::var v) const noexcept { return vars[v].lb; }
+    [[nodiscard]] inline utils::inf_rational ub(const utils::var v) const noexcept { return vars[v].ub; }
+    [[nodiscard]] inline utils::inf_rational val(const utils::var v) const noexcept { return vars[v].val; }
+    [[nodiscard]] inline utils::inf_rational lb(const utils::lin &l) const noexcept
+    {
+      utils::inf_rational b(l.known_term);
+      for (const auto &[v, c] : l.vars)
+        b += (is_positive(c) ? lb(v) * c : ub(v) * c);
+      return b;
+    }
+    [[nodiscard]] inline utils::inf_rational ub(const utils::lin &l) const noexcept
+    {
+      utils::inf_rational b(l.known_term);
+      for (const auto &[v, c] : l.vars)
+        b += (is_positive(c) ? ub(v) * c : lb(v) * c);
+      return b;
+    }
+    [[nodiscard]] inline utils::inf_rational val(const utils::lin &l) const noexcept
+    {
+      utils::inf_rational b(l.known_term);
+      for (const auto &[v, c] : l.vars)
+        b += val(v) * c;
+      return b;
+    }
+
     [[nodiscard]] bool new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false) noexcept;
+    [[nodiscard]] bool new_eq(const utils::lin &lhs, const utils::lin &rhs) noexcept;
+    [[nodiscard]] bool new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false) noexcept { return new_lt(rhs, lhs, strict); }
 
     friend std::string to_string(const solver &s) noexcept;
     friend json::json to_json(const solver &s) noexcept;
 
   private:
+    void set_lb(const utils::var v, const utils::inf_rational &lb) noexcept;
+    void set_ub(const utils::var v, const utils::inf_rational &ub) noexcept;
+
     class var
     {
       friend class solver;
 
     public:
-      var(const utils::rational &lb = utils::rational::negative_infinite, const utils::rational &ub = utils::rational::positive_infinite) : lb(lb), ub(ub) {}
+      var(const utils::inf_rational &lb = utils::inf_rational(utils::rational::negative_infinite), const utils::inf_rational &ub = utils::inf_rational(utils::rational::positive_infinite)) : lb(lb), ub(ub) {}
 
       [[nodiscard]] std::string to_string() const noexcept;
       [[nodiscard]] json::json to_json() const noexcept;
@@ -49,4 +78,5 @@ namespace linspire
   [[nodiscard]] json::json to_json(const solver &s) noexcept;
   [[nodiscard]] json::json to_json(const utils::rational &r) noexcept;
   [[nodiscard]] json::json to_json(const utils::inf_rational &r) noexcept;
+  [[nodiscard]] json::json to_json(const utils::lin &l) noexcept;
 } // namespace linspire
