@@ -24,12 +24,8 @@ namespace linspire
             const auto [v, c] = *expr.vars.cbegin();
             assert(c != 0);
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term) / c; // the right-hand side of the constraint is the division of the negation of the known term by the coefficient..
-            if (lb(expr) > c_right || ub(expr) < c_right)
-                return false; // the variable's bounds are inconsistent with the constraint..
             // we can set both the lower and upper bound of the variable to the right-hand side of the constraint..
-            set_lb(v, c_right);
-            set_ub(v, c_right);
-            return true;
+            return set_lb(v, c_right) && set_ub(v, c_right);
         }
         default: // the expression is a general linear expression..
         {        // we remove the basic variables from the expression and replace them with their corresponding linear expressions in the tableau
@@ -57,9 +53,7 @@ namespace linspire
                 if (lb(expr) > c_right || ub(expr) < c_right)
                     return false; // the variable's bounds are inconsistent with the constraint..
                 // we can set both the lower and upper bound of the variable to the right-hand side of the constraint..
-                set_lb(v, c_right);
-                set_ub(v, c_right);
-                return true;
+                return set_lb(v, c_right) && set_ub(v, c_right);
             }
             default: // the expression is still a general linear expression..
                 const utils::inf_rational c_right = utils::inf_rational(-expr.known_term);
@@ -67,9 +61,7 @@ namespace linspire
                 // we add the expression to the tableau, associating it with a new (slack) variable
                 utils::var slack = new_var(lb(expr), ub(expr));
                 tableau[slack] = expr;
-                set_lb(slack, c_right);
-                set_ub(slack, c_right);
-                return true;
+                return set_lb(slack, c_right) && set_ub(slack, c_right);
             }
         }
         }
@@ -90,20 +82,9 @@ namespace linspire
             assert(c != 0);
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0) / c; // the right-hand side of the constraint is the division of the negation of the known term minus an infinitesimal by the coefficient..
             if (is_positive(c))
-            { // we are in the case `c * v < c_right`..
-                if (ub(expr) < c_right)
-                    return false; // the variable's bounds are inconsistent with the constraint..
-                if (lb(expr) > c_right)
-                    set_lb(v, c_right); // we can update the lower bound of the variable..
-            }
+                return set_lb(v, c_right); // we are in the case `c * v < c_right`..
             else
-            { // we are in the case `c * v > c_right`..
-                if (lb(expr) > c_right)
-                    return false; // the variable's bounds are inconsistent with the constraint..
-                if (ub(expr) < c_right)
-                    set_ub(v, c_right); // we can update the upper bound of the variable..
-            }
-            return true;
+                return set_ub(v, c_right); // we are in the case `c * v > c_right`..
         }
         default: // the expression is a general linear expression..
         {        // we remove the basic variables from the expression and replace them with their corresponding linear expressions in the tableau
@@ -129,20 +110,9 @@ namespace linspire
                 assert(c != 0);
                 const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0) / c; // the right-hand side of the constraint is the division of the negation of the known term minus an infinitesimal by the coefficient
                 if (is_positive(c))
-                { // we are in the case `c * v < c_right`..
-                    if (ub(expr) < c_right)
-                        return false; // the variable's bounds are inconsistent with the constraint..
-                    if (lb(expr) > c_right)
-                        set_lb(v, c_right); // we can update the lower bound of the variable..
-                }
+                    return set_lb(v, c_right); // we are in the case `c * v < c_right`..
                 else
-                { // we are in the case `c * v > c_right`..
-                    if (lb(expr) > c_right)
-                        return false; // the variable's bounds are inconsistent with the constraint..
-                    if (ub(expr) < c_right)
-                        set_ub(v, c_right); // we can update the upper bound of the variable..
-                }
-                return true;
+                    return set_ub(v, c_right); // we are in the case `c * v > c_right`..
             }
             default: // the expression is still a general linear expression..
                 const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0);
@@ -150,29 +120,29 @@ namespace linspire
                 // we add the expression to the tableau, associating it with a new (slack) variable
                 utils::var slack = new_var(lb(expr), ub(expr));
                 tableau[slack] = expr;
-                if (is_positive(expr.vars.begin()->second))
-                    set_ub(slack, c_right); // we are in the case `c * v < c_right`..
-                else
-                    set_lb(slack, c_right); // we are in the case `c * v > c_right`..
-                return true;
+                return set_ub(slack, c_right); // we are in the case `expr < c_right`..
             }
         }
         }
     }
 
-    void solver::set_lb(const utils::var v, const utils::inf_rational &lb) noexcept
+    bool solver::set_lb(const utils::var v, const utils::inf_rational &val) noexcept
     {
         assert(v < vars.size());
-        assert(ub(v) >= lb);
-        if (vars[v].lb < lb)
-            vars[v].lb = lb;
+        if (val <= lb(v))
+            return true; // no update needed..
+        else if (val > ub(v))
+            return false; // inconsistent bounds..
+        vars[v].lb = val;
     }
-    void solver::set_ub(const utils::var v, const utils::inf_rational &ub) noexcept
+    bool solver::set_ub(const utils::var v, const utils::inf_rational &val) noexcept
     {
         assert(v < vars.size());
-        assert(lb(v) <= ub);
-        if (vars[v].ub > ub)
-            vars[v].ub = ub;
+        if (val >= ub(v))
+            return true; // no update needed..
+        else if (val < lb(v))
+            return false; // inconsistent bounds..
+        vars[v].ub = val;
     }
 
     std::string solver::var::to_string() const noexcept

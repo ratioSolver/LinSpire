@@ -53,8 +53,8 @@ namespace linspire
     friend json::json to_json(const solver &s) noexcept;
 
   private:
-    void set_lb(const utils::var v, const utils::inf_rational &lb) noexcept;
-    void set_ub(const utils::var v, const utils::inf_rational &ub) noexcept;
+    bool set_lb(const utils::var v, const utils::inf_rational &val) noexcept;
+    bool set_ub(const utils::var v, const utils::inf_rational &val) noexcept;
 
     class var
     {
