@@ -2,6 +2,7 @@
 #include "lin.hpp"
 #include "inf_rational.hpp"
 #include "json.hpp"
+#include <set>
 
 namespace linspire
 {
@@ -60,6 +61,10 @@ namespace linspire
 
     void update(const utils::var x, const utils::inf_rational &v) noexcept;
 
+    void pivot(const utils::var x, const utils::var y) noexcept;
+
+    void new_row(const utils::var x, utils::lin &&l) noexcept;
+
     class var
     {
       friend class solver;
@@ -74,8 +79,9 @@ namespace linspire
       utils::inf_rational lb, ub, val; // lower bound, upper bound, value
     };
 
-    std::vector<var> vars;                    // index is the variable id
-    std::map<utils::var, utils::lin> tableau; // variable -> expression
+    std::vector<var> vars;                       // index is the variable id
+    std::map<utils::var, utils::lin> tableau;    // variable -> expression
+    std::vector<std::set<utils::var>> t_watches; // for each variable `v`, a set of tableau rows watching `v`..
   };
 
   [[nodiscard]] std::string to_string(const solver &s) noexcept;

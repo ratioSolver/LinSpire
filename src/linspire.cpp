@@ -6,8 +6,11 @@ namespace linspire
 {
     utils::var solver::new_var(const utils::inf_rational &lb, const utils::inf_rational &ub) noexcept
     {
+        assert(lb <= ub);
+        const auto x = vars.size();
         vars.emplace_back(lb, ub);
-        return vars.size() - 1;
+        t_watches.emplace_back();
+        return x;
     }
 
     bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs) noexcept
@@ -60,7 +63,7 @@ namespace linspire
                 expr.known_term = utils::rational::zero;
                 // we add the expression to the tableau, associating it with a new (slack) variable
                 utils::var slack = new_var(lb(expr), ub(expr));
-                tableau[slack] = expr;
+                new_row(slack, std::move(expr));
                 return set_lb(slack, c_right) && set_ub(slack, c_right);
             }
         }
@@ -119,7 +122,7 @@ namespace linspire
                 expr.known_term = utils::rational::zero;
                 // we add the expression to the tableau, associating it with a new (slack) variable
                 utils::var slack = new_var(lb(expr), ub(expr));
-                tableau[slack] = expr;
+                new_row(slack, std::move(expr));
                 return set_ub(slack, c_right); // we are in the case `expr < c_right`..
             }
         }
@@ -157,6 +160,15 @@ namespace linspire
         assert(!is_basic(x));
         assert(v >= lb(x) && v <= ub(x));
         vars[x].val = v;
+    }
+
+    void solver::new_row(const utils::var x, utils::lin &&l) noexcept
+    {
+        assert(x < vars.size());
+        assert(!is_basic(x));
+        for (const auto &[v, _] : l.vars)
+            t_watches[v].insert(x);
+        tableau.emplace(x, std::move(l));
     }
 
     std::string solver::var::to_string() const noexcept
