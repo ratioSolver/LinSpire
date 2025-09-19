@@ -10,7 +10,7 @@ void test0()
     bool res1 = s.new_lt(utils::lin(utils::rational::one), utils::lin(utils::rational::zero), true);
     assert(!res1);
 
-    utils::var x0 = s.new_var();
+    auto x0 = s.new_var();
     LOG_DEBUG(to_string(s));
     bool res2 = s.new_eq(utils::lin(x0, utils::rational(2)) + utils::lin(utils::rational(3)), utils::lin(utils::rational(7)));
     assert(res2);
@@ -18,6 +18,9 @@ void test0()
     assert(s.lb(x0) == utils::inf_rational(2));
     assert(s.ub(x0) == utils::inf_rational(2));
     assert(s.val(x0) == utils::inf_rational(2));
+
+    auto cons = s.check();
+    assert(cons);
 }
 
 int main()
