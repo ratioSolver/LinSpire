@@ -1,5 +1,6 @@
 #include "linspire.hpp"
 #include "logging.hpp"
+#include <algorithm>
 #include <cassert>
 
 namespace linspire
@@ -129,6 +130,38 @@ namespace linspire
         }
     }
 
+    bool solver::check() noexcept
+    {
+        while (true)
+        {
+            // we search for a variable whose value is not within its bounds..
+            const auto &x_i_it = std::find_if(tableau.cbegin(), tableau.cend(), [this](const auto &v)
+                                              { return val(v.first) < lb(v.first) || val(v.first) > ub(v.first); });
+            if (x_i_it == tableau.cend())
+                return true;                // all the variables are within their bounds..
+            const auto x_i = x_i_it->first; // we select the variable `x_i`..
+            const auto &l = x_i_it->second; // we select the linear expression `x_i = ...`..
+            if (val(x_i) < lb(x_i))
+            { // the value of `x_i` is below its lower bound..
+                const auto &x_j_it = std::find_if(l.vars.cbegin(), l.vars.cend(), [l, this](const std::pair<utils::var, utils::rational> &v)
+                                                  { return (is_positive(l.vars.at(v.first)) && val(v.first) < ub(v.first)) || (is_negative(l.vars.at(v.first)) && val(v.first) > lb(v.first)); });
+                if (x_j_it != l.vars.cend()) // var x_j can be used to increase the value of x_i..
+                    pivot_and_update(x_i, x_j_it->first, lb(x_i));
+                else // no var x_j can be used to increase the value of x_i, so the constraints are inconsistent..
+                    return false;
+            }
+            else if (val(x_i) > ub(x_i))
+            { // the value of `x_i` is above its upper bound..
+                const auto &x_j_it = std::find_if(l.vars.cbegin(), l.vars.cend(), [l, this](const std::pair<utils::var, utils::rational> &v)
+                                                  { return (is_positive(l.vars.at(v.first)) && val(v.first) > lb(v.first)) || (is_negative(l.vars.at(v.first)) && val(v.first) < ub(v.first)); });
+                if (x_j_it != l.vars.cend()) // var x_j can be used to decrease the value of x_i..
+                    pivot_and_update(x_i, x_j_it->first, ub(x_i));
+                else // no var x_j can be used to decrease the value of x_i, so the constraints are inconsistent..
+                    return false;
+            }
+        }
+    }
+
     bool solver::set_lb(const utils::var x, const utils::inf_rational &v) noexcept
     {
         assert(x < vars.size());
@@ -154,89 +187,89 @@ namespace linspire
         return true;
     }
 
-    void solver::update(const utils::var x, const utils::inf_rational &v) noexcept
+    void solver::update(const utils::var x_i, const utils::inf_rational &v) noexcept
     {
-        assert(x < vars.size());
-        assert(!is_basic(x));
-        assert(v >= lb(x) && v <= ub(x));
-        vars[x].val = v;
+        assert(x_i < vars.size());
+        assert(!is_basic(x_i));
+        assert(v >= lb(x_i) && v <= ub(x_i));
+        vars[x_i].val = v;
     }
 
-    void solver::pivot_and_update(const utils::var x, const utils::var y, const utils::inf_rational &v) noexcept
+    void solver::pivot_and_update(const utils::var x_i, const utils::var x_j, const utils::inf_rational &v) noexcept
     {
-        assert(x < vars.size());
-        assert(y < vars.size());
-        assert(is_basic(x));
-        assert(!is_basic(y));
-        assert(tableau.at(x).vars.count(y));
-        assert(v >= lb(y) && v <= ub(y));
+        assert(x_i < vars.size());
+        assert(x_j < vars.size());
+        assert(is_basic(x_i));
+        assert(!is_basic(x_j));
+        assert(tableau.at(x_i).vars.count(x_j));
+        assert(v >= lb(x_j) && v <= ub(x_j));
 
-        const auto theta = (v - val(x)) / tableau.at(x).vars.at(y);
-        vars[x].val = v;
-        vars[y].val += theta;
+        const auto theta = (v - val(x_i)) / tableau.at(x_i).vars.at(x_j);
+        vars[x_i].val = v;
+        vars[x_j].val += theta;
 
-        // the tableau rows containing `y` as a non-basic variable..
-        for (const auto &c : t_watches[y])
-            if (c != x)
-            { // x_c += a_cy * theta..
-                vars[c].val += tableau.at(c).vars.at(y) * theta;
+        // the tableau rows containing `x_j` as a non-basic variable..
+        for (const auto &c : t_watches[x_j])
+            if (c != x_i)
+            { // x_c += a_cj * theta..
+                vars[c].val += tableau.at(c).vars.at(x_j) * theta;
             }
 
-        pivot(x, y);
+        pivot(x_i, x_j);
     }
 
-    void solver::pivot(const utils::var x, const utils::var y) noexcept
+    void solver::pivot(const utils::var x_i, const utils::var x_j) noexcept
     {
-        assert(x < vars.size());
-        assert(y < vars.size());
-        assert(is_basic(x));
-        assert(!is_basic(y));
-        assert(tableau.at(x).vars.count(y));
-        assert(t_watches.at(x).empty());
+        assert(x_i < vars.size());
+        assert(x_j < vars.size());
+        assert(is_basic(x_i));
+        assert(!is_basic(x_j));
+        assert(tableau.at(x_i).vars.count(x_j));
+        assert(t_watches.at(x_i).empty());
 
         // we remove the row from the watches
-        for ([[maybe_unused]] const auto &[v, c] : tableau[x].vars)
+        for ([[maybe_unused]] const auto &[v, c] : tableau[x_i].vars)
         {
-            assert(t_watches.at(v).count(x));
-            t_watches.at(v).erase(x);
+            assert(t_watches.at(v).count(x_i));
+            t_watches.at(v).erase(x_i);
         }
 
-        // we rewrite `x = ...` as `y = ...`
-        utils::lin l = std::move(tableau.at(x));
-        utils::rational cc = l.vars.at(y);
-        l.vars.erase(y);
+        // we rewrite `x_i = ...` as `x_j = ...`
+        utils::lin l = std::move(tableau.at(x_i));
+        utils::rational cc = l.vars.at(x_j);
+        l.vars.erase(x_j);
         l /= -cc;
-        l.vars.emplace(x, utils::rational::one / cc);
-        tableau.erase(x);
+        l.vars.emplace(x_i, utils::rational::one / cc);
+        tableau.erase(x_i);
 
-        // we update the rows that contain `y`
-        for (auto &r : t_watches.at(y))
+        // we update the rows that contain `x_j`
+        for (auto &r : t_watches.at(x_j))
         {
             auto &c_l = tableau.at(r);
             assert(c_l.known_term == utils::rational::zero);
-            cc = c_l.vars.at(y);
-            c_l.vars.erase(y);
+            cc = c_l.vars.at(x_j);
+            c_l.vars.erase(x_j);
             for (const auto &[v, c] : l.vars)
-                if (const auto trm_it = c_l.vars.find(v); trm_it == c_l.vars.cend())
-                {                                // `v` is not in the linear expression of `r`, so we add it
+                if (const auto trm_it = c_l.vars.find(v); trm_it == c_l.vars.cend()) // `v` is not in the linear expression of `r`, so we add it
+                {
                     c_l.vars.emplace(v, c * cc); // we add `c * cc` to the linear expression of `r`
                     t_watches[v].insert(r);      // we add `r` to the watches of `v`
                 }
                 else
                 {
                     trm_it->second += c * cc;
-                    if (trm_it->second == 0)
-                    {                           // if the coefficient of `v` is zero, we remove the term from the linear expression
+                    if (trm_it->second == 0) // if the coefficient of `v` is zero, we remove the term from the linear expression
+                    {
                         c_l.vars.erase(trm_it); // we remove `v` from the linear expression of `r`
                         t_watches[v].erase(r);  // we remove `r` from the watches of `v`
                     }
                 }
             LOG_TRACE("x" << std::to_string(r) << " = " << to_string(c_l));
         }
-        t_watches.at(y).clear();
+        t_watches.at(x_j).clear();
 
         // we add the new row `y = ...`
-        new_row(y, std::move(l));
+        new_row(x_j, std::move(l));
     }
 
     void solver::new_row(const utils::var x, utils::lin &&l) noexcept
