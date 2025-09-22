@@ -165,14 +165,14 @@ namespace linspire
   private:
     [[nodiscard]] bool is_basic(const utils::var v) const noexcept { return tableau.count(v); }
 
-    [[nodiscard]] bool set_lb(const utils::var x, const utils::inf_rational &v) noexcept;
-    [[nodiscard]] bool set_ub(const utils::var x, const utils::inf_rational &v) noexcept;
+    [[nodiscard]] bool set_lb(const utils::var x_i, const utils::inf_rational &v) noexcept;
+    [[nodiscard]] bool set_ub(const utils::var x_i, const utils::inf_rational &v) noexcept;
 
-    void update(const utils::var x, const utils::inf_rational &v) noexcept;
+    void update(const utils::var x_i, const utils::inf_rational &v) noexcept;
 
-    void pivot_and_update(const utils::var x, const utils::var y, const utils::inf_rational &v) noexcept;
+    void pivot_and_update(const utils::var x_i, const utils::var x_j, const utils::inf_rational &v) noexcept;
 
-    void pivot(const utils::var x, const utils::var y) noexcept;
+    void pivot(const utils::var x_i, const utils::var x_j) noexcept;
 
     void new_row(const utils::var x, utils::lin &&l) noexcept;
 

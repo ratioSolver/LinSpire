@@ -18,8 +18,9 @@ namespace linspire
     {
         assert(l.vars.size() > 1);
         const auto s_expr = to_string(l);
-        if (const auto it = exprs.find(s_expr); it != exprs.cend())
+        if (const auto it = exprs.find(s_expr); it != exprs.cend()) // we already have a slack variable for this expression..
             return it->second;
+        // we create a new slack variable for this expression..
         utils::var slack = new_var(lb(l), ub(l));
         vars[slack].val = val(l);
         exprs.emplace(s_expr, slack);
