@@ -3,6 +3,7 @@
 #include "inf_rational.hpp"
 #include "json.hpp"
 #include <set>
+#include <unordered_map>
 
 namespace linspire
 {
@@ -189,9 +190,10 @@ namespace linspire
       utils::inf_rational lb, ub, val; // lower bound, upper bound, value
     };
 
-    std::vector<var> vars;                       // index is the variable id
-    std::map<utils::var, utils::lin> tableau;    // variable -> expression
-    std::vector<std::set<utils::var>> t_watches; // for each variable `v`, a set of tableau rows watching `v`..
+    std::vector<var> vars;                             // index is the variable id
+    std::unordered_map<std::string, utils::var> exprs; // the expressions (string to numeric variable) for which already exist slack variables..
+    std::map<utils::var, utils::lin> tableau;          // variable -> expression
+    std::vector<std::set<utils::var>> t_watches;       // for each variable `v`, a set of tableau rows watching `v`..
   };
 
   [[nodiscard]] std::string to_string(const solver &s) noexcept;

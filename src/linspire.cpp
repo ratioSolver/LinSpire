@@ -16,10 +16,15 @@ namespace linspire
 
     utils::var solver::new_var(utils::lin &&l) noexcept
     {
-        utils::var x = new_var(lb(l), ub(l));
-        vars[x].val = val(l);
-        new_row(x, std::move(l));
-        return x;
+        assert(l.vars.size() > 1);
+        const auto s_expr = to_string(l);
+        if (const auto it = exprs.find(s_expr); it != exprs.cend())
+            return it->second;
+        utils::var slack = new_var(lb(l), ub(l));
+        vars[slack].val = val(l);
+        exprs.emplace(s_expr, slack);
+        new_row(slack, std::move(l));
+        return slack;
     }
 
     bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs) noexcept
@@ -55,8 +60,7 @@ namespace linspire
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term);
             expr.known_term = utils::rational::zero;
             // we add the expression to the tableau, associating it with a new (slack) variable
-            utils::var slack = new_var(lb(expr), ub(expr));
-            new_row(slack, std::move(expr));
+            utils::var slack = new_var(std::move(expr));
             return set_lb(slack, c_right) && set_ub(slack, c_right);
         }
     }
@@ -96,8 +100,7 @@ namespace linspire
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0);
             expr.known_term = utils::rational::zero;
             // we add the expression to the tableau, associating it with a new (slack) variable
-            utils::var slack = new_var(lb(expr), ub(expr));
-            new_row(slack, std::move(expr));
+            utils::var slack = new_var(std::move(expr));
             return set_ub(slack, c_right); // we are in the case `expr < c_right`..
         }
     }
@@ -137,7 +140,7 @@ namespace linspire
     bool solver::set_lb(const utils::var x, const utils::inf_rational &v) noexcept
     {
         assert(x < vars.size());
-        LOG_TRACE("x" << std::to_string(x) << " [" << utils::to_string(lb(x)) << " -> " << utils::to_string(v) << ", " << utils::to_string(ub(x)) << "]");
+        LOG_TRACE("x" << std::to_string(x) << " = " << utils::to_string(val(x)) << " [" << utils::to_string(lb(x)) << " -> " << utils::to_string(v) << ", " << utils::to_string(ub(x)) << "]");
         if (v <= lb(x))
             return true; // no update needed..
         else if (v > ub(x))
@@ -150,7 +153,7 @@ namespace linspire
     bool solver::set_ub(const utils::var x, const utils::inf_rational &v) noexcept
     {
         assert(x < vars.size());
-        LOG_TRACE("x" << std::to_string(x) << " [" << utils::to_string(lb(x)) << ", " << utils::to_string(v) << " <- " << utils::to_string(ub(x)) << "]");
+        LOG_TRACE("x" << std::to_string(x) << " = " << utils::to_string(val(x)) << " [" << utils::to_string(lb(x)) << ", " << utils::to_string(v) << " <- " << utils::to_string(ub(x)) << "]");
         if (v >= ub(x))
             return true; // no update needed..
         else if (v < lb(x))
@@ -170,11 +173,11 @@ namespace linspire
         // the tableau rows containing `x_i` as a non-basic variable..
         for (const auto &x_j : t_watches[x_i])
         { // x_j = x_j + a_ji(v - x_i)..
-            LOG_TRACE("x" << std::to_string(x_j) << " = " << utils::to_string(val(x_j)) << " -> " << utils::to_string(val(x_j) + tableau.at(x_j).vars.at(x_i) * (v - vars.at(x_i).val)));
+            LOG_TRACE("x" << std::to_string(x_j) << " = " << utils::to_string(val(x_j)) << " -> " << utils::to_string(val(x_j) + tableau.at(x_j).vars.at(x_i) * (v - vars.at(x_i).val)) << " [" << utils::to_string(lb(x_j)) << ", " << utils::to_string(ub(x_j)) << "]");
             vars[x_j].val += tableau.at(x_j).vars.at(x_i) * (v - vars.at(x_i).val);
         }
 
-        LOG_TRACE("x" << std::to_string(x_i) << " = " << utils::to_string(val(x_i)) << " -> " << utils::to_string(v));
+        LOG_TRACE("x" << std::to_string(x_i) << " = " << utils::to_string(val(x_i)) << " -> " << utils::to_string(v) << " [" << utils::to_string(lb(x_i)) << ", " << utils::to_string(ub(x_i)) << "]");
         vars[x_i].val = v;
     }
 
@@ -188,16 +191,17 @@ namespace linspire
         assert(v >= lb(x_j) && v <= ub(x_j));
 
         const auto theta = (v - val(x_i)) / tableau.at(x_i).vars.at(x_j);
-        LOG_TRACE("x" << std::to_string(x_i) << " = " << utils::to_string(val(x_i)) << " -> " << utils::to_string(v));
+        LOG_TRACE("x" << std::to_string(x_i) << " = " << utils::to_string(val(x_i)) << " -> " << utils::to_string(v) << " [" << utils::to_string(lb(x_i)) << ", " << utils::to_string(ub(x_i)) << "]");
         vars[x_i].val = v;
-        LOG_TRACE("x" << std::to_string(x_j) << " = " << utils::to_string(val(x_j)) << " -> " << utils::to_string(val(x_j) + theta));
+        LOG_TRACE("x" << std::to_string(x_j) << " = " << utils::to_string(val(x_j)) << " -> " << utils::to_string(val(x_j) + theta) << " [" << utils::to_string(lb(x_j)) << ", " << utils::to_string(ub(x_j)) << "]");
         vars[x_j].val += theta;
 
         // the tableau rows containing `x_j` as a non-basic variable..
-        for (const auto &c : t_watches[x_j])
-            if (c != x_i)
-            { // x_c += a_cj * theta..
-                vars[c].val += tableau.at(c).vars.at(x_j) * theta;
+        for (const auto &x_k : t_watches[x_j])
+            if (x_k != x_i)
+            { // x_k += a_kj * theta..
+                LOG_TRACE("x" << std::to_string(x_k) << " = " << utils::to_string(val(x_k)) << " -> " << utils::to_string(val(x_k) + tableau.at(x_k).vars.at(x_j) * theta) << " [" << utils::to_string(lb(x_k)) << ", " << utils::to_string(ub(x_k)) << "]");
+                vars[x_k].val += tableau.at(x_k).vars.at(x_j) * theta;
             }
 
         pivot(x_i, x_j);
@@ -261,26 +265,13 @@ namespace linspire
     {
         assert(x < vars.size());
         assert(!is_basic(x));
+        LOG_TRACE("x" << std::to_string(x) << " = " << utils::to_string(l));
         for (const auto &[v, _] : l.vars)
             t_watches.at(v).insert(x);
         tableau.emplace(x, std::move(l));
     }
 
-    std::string solver::var::to_string() const noexcept
-    {
-        std::string str = utils::to_string(val) + " [";
-        if (is_infinite(lb))
-            str += "-inf";
-        else
-            str += utils::to_string(lb);
-        str += ", ";
-        if (is_infinite(ub))
-            str += "+inf";
-        else
-            str += utils::to_string(ub);
-        str += "]";
-        return str;
-    }
+    std::string solver::var::to_string() const noexcept { return utils::to_string(val) + " [" + utils::to_string(lb) + ", " + utils::to_string(ub) + "]"; }
 
     json::json solver::var::to_json() const noexcept
     {
