@@ -23,9 +23,30 @@ void test0()
     assert(cons);
 }
 
+void test1()
+{
+    linspire::solver s;
+    auto x = s.new_var();
+    auto y = s.new_var();
+    auto s1 = s.new_var(utils::lin(x, -utils::rational::one) + utils::lin(y, utils::rational::one));
+    auto s2 = s.new_var(utils::lin(x, utils::rational::one) + utils::lin(y, utils::rational::one));
+
+    // x <= -4
+    bool res0 = s.new_lt(utils::lin(x, utils::rational::one), utils::lin(utils::rational(-4)));
+    // x >= -8
+    bool res1 = s.new_gt(utils::lin(x, utils::rational::one), utils::lin(utils::rational(-8)));
+    // s1 <= 1
+    bool res2 = s.new_lt(utils::lin(s1, utils::rational::one), utils::lin(utils::rational(1)));
+    // s2 >= -3
+    bool res3 = s.new_gt(utils::lin(s2, utils::rational::one), utils::lin(utils::rational(-3)));
+
+    auto cons = s.check();
+}
+
 int main()
 {
     test0();
+    test1();
 
     return 0;
 }

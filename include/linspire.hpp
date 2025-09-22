@@ -22,6 +22,17 @@ namespace linspire
     [[nodiscard]] utils::var new_var(const utils::inf_rational &lb = utils::inf_rational(utils::rational::negative_infinite), const utils::inf_rational &ub = utils::inf_rational(utils::rational::positive_infinite)) noexcept;
 
     /**
+     * @brief Creates a new variable defined by a linear expression.
+     *
+     * This function constructs a new variable that is defined by a given linear expression.
+     * The linear expression specifies the relationship between the new variable and other variables.
+     *
+     * @param l The linear expression defining the new variable.
+     * @return A new instance of utils::var representing the variable.
+     */
+    [[nodiscard]] utils::var new_var(utils::lin &&l) noexcept;
+
+    /**
      * @brief Returns the lower bound of the specified variable.
      *
      * This function retrieves the lower bound (`lb`) associated with the variable `x`.

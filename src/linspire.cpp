@@ -14,6 +14,14 @@ namespace linspire
         return x;
     }
 
+    utils::var solver::new_var(utils::lin &&l) noexcept
+    {
+        utils::var x = new_var(lb(l), ub(l));
+        vars[x].val = val(l);
+        new_row(x, std::move(l));
+        return x;
+    }
+
     bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs) noexcept
     {
         LOG_TRACE(utils::to_string(lhs) + " == " + utils::to_string(rhs));
@@ -86,9 +94,9 @@ namespace linspire
             assert(c != 0);
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0) / c; // the right-hand side of the constraint is the division of the negation of the known term minus an infinitesimal by the coefficient..
             if (is_positive(c))
-                return set_lb(x, c_right); // we are in the case `c * v < c_right`..
+                return set_ub(x, c_right); // we are in the case `c * v < c_right`..
             else
-                return set_ub(x, c_right); // we are in the case `c * v > c_right`..
+                return set_lb(x, c_right); // we are in the case `c * v > c_right`..
         }
         default: // the expression is a general linear expression..
         {        // we remove the basic variables from the expression and replace them with their corresponding linear expressions in the tableau
@@ -114,9 +122,9 @@ namespace linspire
                 assert(c != 0);
                 const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0) / c; // the right-hand side of the constraint is the division of the negation of the known term minus an infinitesimal by the coefficient
                 if (is_positive(c))
-                    return set_lb(x, c_right); // we are in the case `c * v < c_right`..
+                    return set_ub(x, c_right); // we are in the case `c * v < c_right`..
                 else
-                    return set_ub(x, c_right); // we are in the case `c * v > c_right`..
+                    return set_lb(x, c_right); // we are in the case `c * v > c_right`..
             }
             default: // the expression is still a general linear expression..
                 const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0);
@@ -165,6 +173,7 @@ namespace linspire
     bool solver::set_lb(const utils::var x, const utils::inf_rational &v) noexcept
     {
         assert(x < vars.size());
+        LOG_TRACE("x" << std::to_string(x) << " [" << utils::to_string(lb(x)) << " -> " << utils::to_string(v) << ", " << utils::to_string(ub(x)) << "]");
         if (v <= lb(x))
             return true; // no update needed..
         else if (v > ub(x))
@@ -177,6 +186,7 @@ namespace linspire
     bool solver::set_ub(const utils::var x, const utils::inf_rational &v) noexcept
     {
         assert(x < vars.size());
+        LOG_TRACE("x" << std::to_string(x) << " [" << utils::to_string(lb(x)) << ", " << utils::to_string(v) << " <- " << utils::to_string(ub(x)) << "]");
         if (v >= ub(x))
             return true; // no update needed..
         else if (v < lb(x))
@@ -192,6 +202,7 @@ namespace linspire
         assert(x_i < vars.size());
         assert(!is_basic(x_i));
         assert(v >= lb(x_i) && v <= ub(x_i));
+        LOG_TRACE("x" << std::to_string(x_i) << " = " << utils::to_string(val(x_i)) << " -> " << utils::to_string(v));
         vars[x_i].val = v;
     }
 
@@ -205,7 +216,9 @@ namespace linspire
         assert(v >= lb(x_j) && v <= ub(x_j));
 
         const auto theta = (v - val(x_i)) / tableau.at(x_i).vars.at(x_j);
+        LOG_TRACE("x" << std::to_string(x_i) << " = " << utils::to_string(val(x_i)) << " -> " << utils::to_string(v));
         vars[x_i].val = v;
+        LOG_TRACE("x" << std::to_string(x_j) << " = " << utils::to_string(val(x_j)) << " -> " << utils::to_string(val(x_j) + theta));
         vars[x_j].val += theta;
 
         // the tableau rows containing `x_j` as a non-basic variable..
