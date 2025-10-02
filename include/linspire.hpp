@@ -4,9 +4,13 @@
 #include "json.hpp"
 #include <set>
 #include <unordered_map>
+#include <memory>
 
 namespace linspire
 {
+  class var;
+  class constraint;
+
   class solver
   {
   public:
@@ -41,7 +45,7 @@ namespace linspire
      * @param x The variable whose lower bound is to be retrieved.
      * @return utils::inf_rational The lower bound of the variable.
      */
-    [[nodiscard]] inline utils::inf_rational lb(const utils::var x) const noexcept { return vars[x].lb; }
+    [[nodiscard]] utils::inf_rational lb(const utils::var x) const noexcept;
     /**
      * @brief Returns the upper bound of the specified variable.
      *
@@ -50,7 +54,7 @@ namespace linspire
      * @param x The variable whose upper bound is to be retrieved.
      * @return utils::inf_rational The upper bound of the variable.
      */
-    [[nodiscard]] inline utils::inf_rational ub(const utils::var x) const noexcept { return vars[x].ub; }
+    [[nodiscard]] utils::inf_rational ub(const utils::var x) const noexcept;
     /**
      * @brief Returns the current value of the specified variable.
      *
@@ -59,7 +63,7 @@ namespace linspire
      * @param x The variable whose current value is to be retrieved.
      * @return utils::inf_rational The current value of the variable.
      */
-    [[nodiscard]] inline utils::inf_rational val(const utils::var x) const noexcept { return vars[x].val; }
+    [[nodiscard]] utils::inf_rational val(const utils::var x) const noexcept;
     /**
      * @brief Returns the lower bound of a linear expression.
      *
@@ -165,8 +169,8 @@ namespace linspire
   private:
     [[nodiscard]] bool is_basic(const utils::var v) const noexcept { return tableau.count(v); }
 
-    [[nodiscard]] bool set_lb(const utils::var x_i, const utils::inf_rational &v) noexcept;
-    [[nodiscard]] bool set_ub(const utils::var x_i, const utils::inf_rational &v) noexcept;
+    [[nodiscard]] bool set_lb(const utils::var x_i, const utils::inf_rational &v, std::shared_ptr<constraint> reason = nullptr) noexcept;
+    [[nodiscard]] bool set_ub(const utils::var x_i, const utils::inf_rational &v, std::shared_ptr<constraint> reason = nullptr) noexcept;
 
     void update(const utils::var x_i, const utils::inf_rational &v) noexcept;
 
@@ -176,24 +180,33 @@ namespace linspire
 
     void new_row(const utils::var x, utils::lin &&l) noexcept;
 
-    class var
-    {
-      friend class solver;
-
-    public:
-      var(const utils::inf_rational &lb = utils::inf_rational(utils::rational::negative_infinite), const utils::inf_rational &ub = utils::inf_rational(utils::rational::positive_infinite)) : lb(lb), ub(ub) {}
-
-      [[nodiscard]] std::string to_string() const noexcept;
-      [[nodiscard]] json::json to_json() const noexcept;
-
-    private:
-      utils::inf_rational lb, ub, val; // lower bound, upper bound, value
-    };
-
     std::vector<var> vars;                             // index is the variable id
     std::unordered_map<std::string, utils::var> exprs; // the expressions (string to numeric variable) for which already exist slack variables..
     std::map<utils::var, utils::lin> tableau;          // variable -> expression
     std::vector<std::set<utils::var>> t_watches;       // for each variable `v`, a set of tableau rows watching `v`..
+  };
+
+  class constraint
+  {
+    friend class solver;
+
+  private:
+    std::map<utils::var, utils::inf_rational> lbs, ubs;
+  };
+
+  class var
+  {
+    friend class solver;
+
+  public:
+    var(const utils::inf_rational &lb = utils::inf_rational(utils::rational::negative_infinite), const utils::inf_rational &ub = utils::inf_rational(utils::rational::positive_infinite)) noexcept;
+
+    [[nodiscard]] std::string to_string() const noexcept;
+    [[nodiscard]] json::json to_json() const noexcept;
+
+  private:
+    std::map<utils::inf_rational, std::set<std::shared_ptr<constraint>>> lbs, ubs;
+    utils::inf_rational val;
   };
 
   [[nodiscard]] std::string to_string(const solver &s) noexcept;

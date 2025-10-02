@@ -28,6 +28,10 @@ namespace linspire
         return slack;
     }
 
+    utils::inf_rational solver::lb(const utils::var x) const noexcept { return vars[x].lbs.rbegin()->first; }
+    utils::inf_rational solver::ub(const utils::var x) const noexcept { return vars[x].ubs.begin()->first; }
+    utils::inf_rational solver::val(const utils::var x) const noexcept { return vars[x].val; }
+
     bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs) noexcept
     {
         LOG_TRACE(utils::to_string(lhs) + " == " + utils::to_string(rhs));
@@ -138,7 +142,7 @@ namespace linspire
         }
     }
 
-    bool solver::set_lb(const utils::var x, const utils::inf_rational &v) noexcept
+    bool solver::set_lb(const utils::var x, const utils::inf_rational &v, std::shared_ptr<constraint> reason) noexcept
     {
         assert(x < vars.size());
         LOG_TRACE("x" << std::to_string(x) << " = " << utils::to_string(val(x)) << " [" << utils::to_string(lb(x)) << " -> " << utils::to_string(v) << ", " << utils::to_string(ub(x)) << "]");
@@ -146,12 +150,27 @@ namespace linspire
             return true; // no update needed..
         else if (v > ub(x))
             return false; // inconsistent bounds..
-        vars[x].lb = v;
+
+        if (reason)
+        {
+            if (auto it = vars[x].lbs.find(v); it != vars[x].lbs.end())
+                it->second.insert(reason);
+            else
+                vars[x].lbs.emplace(v, std::set<std::shared_ptr<constraint>>{reason});
+        }
+        else
+        {
+            auto &lbs = vars[x].lbs;
+            auto it = lbs.upper_bound(v);
+            lbs.erase(lbs.begin(), it);
+            lbs.emplace(v, std::set<std::shared_ptr<constraint>>());
+        }
+
         if (val(x) < v && !is_basic(x))
             update(x, v);
         return true;
     }
-    bool solver::set_ub(const utils::var x, const utils::inf_rational &v) noexcept
+    bool solver::set_ub(const utils::var x, const utils::inf_rational &v, std::shared_ptr<constraint> reason) noexcept
     {
         assert(x < vars.size());
         LOG_TRACE("x" << std::to_string(x) << " = " << utils::to_string(val(x)) << " [" << utils::to_string(lb(x)) << ", " << utils::to_string(v) << " <- " << utils::to_string(ub(x)) << "]");
@@ -159,7 +178,22 @@ namespace linspire
             return true; // no update needed..
         else if (v < lb(x))
             return false; // inconsistent bounds..
-        vars[x].ub = v;
+
+        if (reason)
+        {
+            if (auto it = vars[x].ubs.find(v); it != vars[x].ubs.end())
+                it->second.insert(reason);
+            else
+                vars[x].ubs.emplace(v, std::set<std::shared_ptr<constraint>>{reason});
+        }
+        else
+        {
+            auto &ubs = vars[x].ubs;
+            auto it = ubs.lower_bound(v);
+            ubs.erase(it, ubs.end());
+            ubs.emplace(v, std::set<std::shared_ptr<constraint>>());
+        }
+
         if (val(x) > v && !is_basic(x))
             update(x, v);
         return true;
@@ -272,13 +306,22 @@ namespace linspire
         tableau.emplace(x, std::move(l));
     }
 
-    std::string solver::var::to_string() const noexcept { return utils::to_string(val) + " [" + utils::to_string(lb) + ", " + utils::to_string(ub) + "]"; }
+    var::var(const utils::inf_rational &lb, const utils::inf_rational &ub) noexcept
+    {
+        assert(lb <= ub);
+        lbs.emplace(lb, std::set<std::shared_ptr<constraint>>());
+        ubs.emplace(ub, std::set<std::shared_ptr<constraint>>());
+    }
 
-    json::json solver::var::to_json() const noexcept
+    std::string var::to_string() const noexcept { return utils::to_string(val) + " [" + utils::to_string(lbs.rbegin()->first) + ", " + utils::to_string(ubs.begin()->first) + "]"; }
+
+    json::json var::to_json() const noexcept
     {
         json::json j = linspire::to_json(val);
+        auto &lb = lbs.rbegin()->first;
         if (!is_infinite(lb))
             j["lb"] = linspire::to_json(lb);
+        auto &ub = ubs.begin()->first;
         if (!is_infinite(ub))
             j["ub"] = linspire::to_json(ub);
         return j;
