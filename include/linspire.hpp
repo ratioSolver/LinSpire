@@ -123,9 +123,10 @@ namespace linspire
      * @param lhs The left-hand side linear expression of the constraint.
      * @param rhs The right-hand side linear expression of the constraint.
      * @param strict A boolean indicating whether the constraint is strict (default: false).
+     * @param reason An optional shared pointer to a constraint object that serves as the reason for this constraint.
      * @return true if the constraint was successfully added; false if it leads to inconsistency.
      */
-    [[nodiscard]] bool new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false) noexcept;
+    [[nodiscard]] bool new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, std::shared_ptr<constraint> reason = nullptr) noexcept;
     /**
      * @brief Adds a new equality constraint to the solver.
      *
@@ -134,9 +135,10 @@ namespace linspire
      *
      * @param lhs The left-hand side linear expression of the equality constraint.
      * @param rhs The right-hand side linear expression of the equality constraint.
+     * @param reason An optional shared pointer to a constraint object that serves as the reason for this equality constraint.
      * @return true if the equality constraint was successfully added; false if it leads to inconsistency.
      */
-    [[nodiscard]] bool new_eq(const utils::lin &lhs, const utils::lin &rhs) noexcept;
+    [[nodiscard]] bool new_eq(const utils::lin &lhs, const utils::lin &rhs, std::shared_ptr<constraint> reason = nullptr) noexcept;
     /**
      * @brief Adds a new greater-than or greater-than-or-equal-to constraint to the solver.
      *
@@ -147,9 +149,20 @@ namespace linspire
      * @param lhs The left-hand side linear expression of the constraint.
      * @param rhs The right-hand side linear expression of the constraint.
      * @param strict A boolean indicating whether the constraint is strict (default: false).
+     * @param reason An optional shared pointer to a constraint object that serves as the reason for this constraint.
      * @return true if the constraint was successfully added; false if it leads to inconsistency.
      */
-    [[nodiscard]] bool new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false) noexcept { return new_lt(rhs, lhs, strict); }
+    [[nodiscard]] bool new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, std::shared_ptr<constraint> reason = nullptr) noexcept { return new_lt(rhs, lhs, strict, reason); }
+
+    /**
+     * @brief Retracts a previously added constraint from the solver.
+     *
+     * This function removes a previously added constraint from the solver. It updates the
+     * internal state of the solver to reflect the removal of the constraint.
+     *
+     * @param c A shared pointer to the constraint object to be retracted.
+     */
+    void retract(const std::shared_ptr<constraint> c) noexcept;
 
     /**
      * @brief Checks the consistency of the current set of constraints.

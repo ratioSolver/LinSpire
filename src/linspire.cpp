@@ -32,7 +32,7 @@ namespace linspire
     utils::inf_rational solver::ub(const utils::var x) const noexcept { return vars[x].ubs.begin()->first; }
     utils::inf_rational solver::val(const utils::var x) const noexcept { return vars[x].val; }
 
-    bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs) noexcept
+    bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs, std::shared_ptr<constraint> reason) noexcept
     {
         LOG_TRACE(utils::to_string(lhs) + " == " + utils::to_string(rhs));
         utils::lin expr = lhs - rhs;
@@ -59,18 +59,18 @@ namespace linspire
             assert(c != 0);
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term) / c; // the right-hand side of the constraint is the division of the negation of the known term by the coefficient..
             // we can set both the lower and upper bound of the variable to the right-hand side of the constraint..
-            return set_lb(x, c_right) && set_ub(x, c_right);
+            return set_lb(x, c_right, reason) && set_ub(x, c_right, reason);
         }
         default: // the expression is still a general linear expression..
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term);
             expr.known_term = utils::rational::zero;
             // we add the expression to the tableau, associating it with a new (slack) variable
             utils::var slack = new_var(std::move(expr));
-            return set_lb(slack, c_right) && set_ub(slack, c_right);
+            return set_lb(slack, c_right, reason) && set_ub(slack, c_right, reason);
         }
     }
 
-    bool solver::new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict) noexcept
+    bool solver::new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict, std::shared_ptr<constraint> reason) noexcept
     {
         LOG_TRACE(utils::to_string(lhs) + (strict ? " < " : " <= ") + utils::to_string(rhs));
         utils::lin expr = lhs - rhs;
@@ -97,17 +97,35 @@ namespace linspire
             assert(c != 0);
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0) / c; // the right-hand side of the constraint is the division of the negation of the known term minus an infinitesimal by the coefficient..
             if (is_positive(c))
-                return set_ub(x, c_right); // we are in the case `c * v < c_right`..
+                return set_ub(x, c_right, reason); // we are in the case `c * v < c_right`..
             else
-                return set_lb(x, c_right); // we are in the case `c * v > c_right`..
+                return set_lb(x, c_right, reason); // we are in the case `c * v > c_right`..
         }
         default: // the expression is still a general linear expression..
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0);
             expr.known_term = utils::rational::zero;
             // we add the expression to the tableau, associating it with a new (slack) variable
             utils::var slack = new_var(std::move(expr));
-            return set_ub(slack, c_right); // we are in the case `expr < c_right`..
+            return set_ub(slack, c_right, reason); // we are in the case `expr < c_right`..
         }
+    }
+
+    void solver::retract(const std::shared_ptr<constraint> c) noexcept
+    {
+        for (const auto &[x, lb] : c->lbs)
+        {
+            vars[x].lbs[lb].erase(c);
+            if (vars[x].lbs[lb].empty())
+                vars[x].lbs.erase(lb);
+        }
+        c->lbs.clear();
+        for (const auto &[x, ub] : c->ubs)
+        {
+            vars[x].ubs[ub].erase(c);
+            if (vars[x].ubs[ub].empty())
+                vars[x].ubs.erase(ub);
+        }
+        c->ubs.clear();
     }
 
     bool solver::check() noexcept
