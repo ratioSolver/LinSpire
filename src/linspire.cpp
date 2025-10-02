@@ -175,6 +175,7 @@ namespace linspire
                 it->second.insert(reason);
             else
                 vars[x].lbs.emplace(v, std::set<std::shared_ptr<constraint>>{reason});
+            reason->lbs.emplace(x, v);
         }
         else
         {
@@ -203,6 +204,7 @@ namespace linspire
                 it->second.insert(reason);
             else
                 vars[x].ubs.emplace(v, std::set<std::shared_ptr<constraint>>{reason});
+            reason->ubs.emplace(x, v);
         }
         else
         {
