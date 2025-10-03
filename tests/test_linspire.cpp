@@ -2,6 +2,16 @@
 #include "logging.hpp"
 #include <cassert>
 
+/**
+ * @brief Unit test for the linspire::solver class.
+ *
+ * This test verifies the following functionalities:
+ * - Creating variables and adding equality and less-than constraints using new_eq and new_lt.
+ * - Ensuring that the constraints are satisfiable and checking the solver's consistency.
+ * - Testing the solver's ability to detect inconsistency when conflicting constraints are added.
+ *
+ * Assertions are used to ensure that each step behaves as expected.
+ */
 void test0()
 {
     linspire::solver s;
@@ -23,6 +33,16 @@ void test0()
     assert(cons);
 }
 
+/**
+ * @brief Unit test for the linspire::solver class.
+ *
+ * This test verifies the following functionalities:
+ * - Creating variables and adding less-than and greater-than constraints using new_lt and new_gt.
+ * - Ensuring that the constraints are satisfiable and checking the solver's consistency.
+ * - Testing the solver's ability to detect inconsistency when conflicting constraints are added.
+ *
+ * Assertions are used to ensure that each step behaves as expected.
+ */
 void test1()
 {
     linspire::solver s;
@@ -48,6 +68,16 @@ void test1()
     assert(!cons);
 }
 
+/**
+ * @brief Unit test for the linspire::solver class.
+ *
+ * This test verifies the following functionalities:
+ * - Creating variables and adding greater-than constraints using new_gt.
+ * - Ensuring that the constraints are satisfiable and checking the solver's consistency.
+ * - Testing the solver's ability to retract constraints and add new ones, ensuring continued consistency.
+ *
+ * Assertions are used to ensure that each step behaves as expected.
+ */
 void test2()
 {
     linspire::solver s;
@@ -76,11 +106,53 @@ void test2()
     assert(cons);
 }
 
+/**
+ * @brief Unit test for the linspire::solver class.
+ *
+ * This test verifies the following functionalities:
+ * - Creating variables and adding consistent constraints using new_eq and new_lt.
+ * - Ensuring that the constraints are satisfiable and checking the solver's consistency.
+ * - Creating conflicting constraints and verifying that the solver detects inconsistency.
+ * - Testing the solver's ability to generate a conflict explanation when inconsistency is detected.
+ *
+ * Assertions are used to ensure that each step behaves as expected.
+ */
+void test3()
+{
+    linspire::solver s;
+    auto x = s.new_var();
+    auto y = s.new_var();
+    auto z = s.new_var();
+
+    auto c0 = std::make_shared<linspire::constraint>();
+    auto c1 = std::make_shared<linspire::constraint>();
+    auto c2 = std::make_shared<linspire::constraint>();
+
+    // x + y >= 1
+    bool res0 = s.new_gt({{x, 1}, {y, 1}}, 1, false, c0);
+    assert(res0);
+    // x >= 2
+    bool res1 = s.new_gt({{x, 1}}, 2, false, c1);
+    assert(res1);
+    bool cons = s.check();
+    assert(cons);
+
+    // x + y <= 0
+    bool res2 = s.new_lt({{x, 1}, {y, 1}}, 0, false, c2);
+    assert(res2);
+    cons = s.check();
+    assert(!cons);
+    auto expl = s.get_conflict();
+    assert(expl.size() == 2);
+    assert((expl[0] == c0 && expl[1] == c2) || (expl[0] == c2 && expl[1] == c0));
+}
+
 int main()
 {
     test0();
     test1();
     test2();
+    test3();
 
     return 0;
 }

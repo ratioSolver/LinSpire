@@ -146,7 +146,19 @@ namespace linspire
                 if (x_j_it != l.vars.cend()) // var x_j can be used to increase the value of x_i..
                     pivot_and_update(x_i, x_j_it->first, lb(x_i));
                 else // no var x_j can be used to increase the value of x_i, so the constraints are inconsistent..
+                {    // we generate an explanation for the conflict..
+                    cnfl.clear();
+                    for (const auto &[v, c] : l.vars)
+                        if (is_positive(c)) // we use the most restrictive upper bound of v
+                            for (const auto &w : vars.at(v).ubs.begin()->second)
+                                cnfl.push_back(w);
+                        else if (is_negative(c)) // we use the most restrictive lower bound of v
+                            for (const auto &w : vars.at(v).lbs.rbegin()->second)
+                                cnfl.push_back(w);
+                    for (const auto &w : vars.at(x_i).lbs.rbegin()->second) // we use the most restrictive lower bound of x_i
+                        cnfl.push_back(w);
                     return false;
+                }
             }
             else if (val(x_i) > ub(x_i))
             { // the value of `x_i` is above its upper bound..
@@ -155,7 +167,19 @@ namespace linspire
                 if (x_j_it != l.vars.cend()) // var x_j can be used to decrease the value of x_i..
                     pivot_and_update(x_i, x_j_it->first, ub(x_i));
                 else // no var x_j can be used to decrease the value of x_i, so the constraints are inconsistent..
+                {    // we generate an explanation for the conflict..
+                    cnfl.clear();
+                    for (const auto &[v, c] : l.vars)
+                        if (is_positive(c)) // we use the most restrictive lower bound of v
+                            for (const auto &w : vars.at(v).lbs.rbegin()->second)
+                                cnfl.push_back(w);
+                        else if (is_negative(c)) // we use the most restrictive upper bound of v
+                            for (const auto &w : vars.at(v).ubs.begin()->second)
+                                cnfl.push_back(w);
+                    for (const auto &w : vars.at(x_i).ubs.begin()->second) // we use the most restrictive upper bound of x_i
+                        cnfl.push_back(w);
                     return false;
+                }
             }
         }
     }
