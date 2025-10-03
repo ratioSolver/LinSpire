@@ -114,6 +114,7 @@ void test2()
  * - Ensuring that the constraints are satisfiable and checking the solver's consistency.
  * - Creating conflicting constraints and verifying that the solver detects inconsistency.
  * - Testing the solver's ability to generate a conflict explanation when inconsistency is detected.
+ * - Retracting a conflicting constraint and ensuring the solver returns to a consistent state.
  *
  * Assertions are used to ensure that each step behaves as expected.
  */
@@ -122,7 +123,6 @@ void test3()
     linspire::solver s;
     auto x = s.new_var();
     auto y = s.new_var();
-    auto z = s.new_var();
 
     auto c0 = std::make_shared<linspire::constraint>();
     auto c1 = std::make_shared<linspire::constraint>();
@@ -145,6 +145,10 @@ void test3()
     auto expl = s.get_conflict();
     assert(expl.size() == 2);
     assert((expl[0] == c0 && expl[1] == c2) || (expl[0] == c2 && expl[1] == c0));
+
+    s.retract(c0);
+    cons = s.check();
+    assert(cons);
 }
 
 int main()
