@@ -1,6 +1,6 @@
 add_executable(linspire_lib_tests test_linspire.cpp)
-add_dependencies(linspire_lib_tests linspire)
-target_link_libraries(linspire_lib_tests PRIVATE linspire)
+add_dependencies(linspire_lib_tests LinSpire)
+target_link_libraries(linspire_lib_tests PRIVATE LinSpire)
 setup_sanitizers(linspire_lib_tests)
 
 add_test(NAME LinSpire_LibTest COMMAND linspire_lib_tests WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
