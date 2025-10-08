@@ -68,6 +68,28 @@ void test1()
     assert(!cons);
 }
 
+void test2()
+{
+    linspire::solver s;
+    auto x = s.new_var();
+
+    auto c0 = std::make_shared<linspire::constraint>();
+
+    // x >= 0
+    bool res0 = s.new_gt({{x, 1}}, 0, false, c0);
+    assert(res0);
+    // x >= 1
+    bool res1 = s.new_gt({{x, 1}}, 1, false, c0);
+    assert(res1);
+
+    auto cons = s.check();
+    assert(cons);
+
+    s.retract(c0);
+    assert(s.lb(x) == utils::rational::negative_infinite);
+    assert(s.ub(x) == utils::rational::positive_infinite);
+}
+
 /**
  * @brief Unit test for the linspire::solver class.
  *
@@ -78,7 +100,7 @@ void test1()
  *
  * Assertions are used to ensure that each step behaves as expected.
  */
-void test2()
+void test3()
 {
     linspire::solver s;
     auto x = s.new_var();
@@ -118,7 +140,7 @@ void test2()
  *
  * Assertions are used to ensure that each step behaves as expected.
  */
-void test3()
+void test4()
 {
     linspire::solver s;
     auto x = s.new_var();
@@ -157,6 +179,7 @@ int main()
     test1();
     test2();
     test3();
+    test4();
 
     return 0;
 }
