@@ -68,6 +68,16 @@ void test1()
     assert(!cons);
 }
 
+/**
+ * @brief Unit test for the linspire::solver class.
+ *
+ * This test verifies the following functionalities:
+ * - Creating variables and adding constraints sharing the same reason.
+ * - Ensuring that the constraints are satisfiable and checking the solver's consistency.
+ * - Testing the solver's ability to retract constraints and ensure bounds are reset.
+ *
+ * Assertions are used to ensure that each step behaves as expected.
+ */
 void test2()
 {
     linspire::solver s;
@@ -78,7 +88,7 @@ void test2()
     // x >= 0
     bool res0 = s.new_gt({{x, 1}}, 0, false, c0);
     assert(res0);
-    // x >= 1
+    // x >= 1 (we add this constraint with the same reason as the previous one)
     bool res1 = s.new_gt({{x, 1}}, 1, false, c0);
     assert(res1);
 

@@ -1,18 +1,15 @@
 #pragma once
-#include "lin.hpp"
-#include "inf_rational.hpp"
-#include "json.hpp"
+
+#include "var.hpp"
 #include <set>
 #include <unordered_map>
-#include <memory>
 
 namespace linspire
 {
-  class var;
-  class constraint;
-
   class solver
   {
+    friend class constraint;
+
   public:
     /**
      * @brief Creates a new variable with specified lower and upper bounds.
@@ -219,28 +216,8 @@ namespace linspire
     std::map<utils::var, utils::inf_rational> lbs, ubs;
   };
 
-  class var
-  {
-    friend class solver;
-
-  public:
-    var(const utils::inf_rational &lb = utils::inf_rational(utils::rational::negative_infinite), const utils::inf_rational &ub = utils::inf_rational(utils::rational::positive_infinite)) noexcept;
-
-    [[nodiscard]] utils::inf_rational lb() const noexcept;
-    [[nodiscard]] utils::inf_rational ub() const noexcept;
-
-    friend std::string to_string(const var &x) noexcept;
-    friend json::json to_json(const var &x) noexcept;
-
-  private:
-    std::map<utils::inf_rational, std::set<std::shared_ptr<constraint>>> lbs, ubs;
-    utils::inf_rational val;
-  };
-
   [[nodiscard]] std::string to_string(const solver &s) noexcept;
   [[nodiscard]] json::json to_json(const solver &s) noexcept;
-  [[nodiscard]] std::string to_string(const var &x) noexcept;
-  [[nodiscard]] json::json to_json(const var &x) noexcept;
   [[nodiscard]] json::json to_json(const utils::rational &r) noexcept;
   [[nodiscard]] json::json to_json(const utils::inf_rational &r) noexcept;
   [[nodiscard]] json::json to_json(const utils::lin &l) noexcept;

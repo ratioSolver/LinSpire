@@ -9,7 +9,7 @@ namespace linspire
     {
         assert(lb <= ub);
         const auto x = vars.size();
-        vars.emplace_back(lb, ub);
+        vars.emplace_back(x, lb, ub);
         t_watches.emplace_back();
         return x;
     }
@@ -28,8 +28,8 @@ namespace linspire
         return slack;
     }
 
-    utils::inf_rational solver::lb(const utils::var x) const noexcept { return vars[x].lb(); }
-    utils::inf_rational solver::ub(const utils::var x) const noexcept { return vars[x].ub(); }
+    utils::inf_rational solver::lb(const utils::var x) const noexcept { return vars[x].get_lb(); }
+    utils::inf_rational solver::ub(const utils::var x) const noexcept { return vars[x].get_ub(); }
     utils::inf_rational solver::val(const utils::var x) const noexcept { return vars[x].val; }
 
     bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs, std::shared_ptr<constraint> reason) noexcept
@@ -113,18 +113,10 @@ namespace linspire
     void solver::retract(const std::shared_ptr<constraint> c) noexcept
     {
         for (const auto &[x, lb] : c->lbs)
-        {
-            vars[x].lbs[lb].erase(c);
-            if (vars[x].lbs[lb].empty())
-                vars[x].lbs.erase(lb);
-        }
+            vars[x].unset_lb(lb, c);
         c->lbs.clear();
         for (const auto &[x, ub] : c->ubs)
-        {
-            vars[x].ubs[ub].erase(c);
-            if (vars[x].ubs[ub].empty())
-                vars[x].ubs.erase(ub);
-        }
+            vars[x].unset_ub(ub, c);
         c->ubs.clear();
     }
 
@@ -187,28 +179,24 @@ namespace linspire
     bool solver::set_lb(const utils::var x, const utils::inf_rational &v, std::shared_ptr<constraint> reason) noexcept
     {
         assert(x < vars.size());
+        assert(v > utils::rational::negative_infinite);
         LOG_TRACE("x" << std::to_string(x) << " = " << utils::to_string(val(x)) << " [" << utils::to_string(lb(x)) << " -> " << utils::to_string(v) << ", " << utils::to_string(ub(x)) << "]");
-        if (v <= lb(x))
-            return true; // no update needed..
-        else if (v > ub(x))
-            return false; // inconsistent bounds..
-
+        if (v > ub(x)) // inconsistent bound..
+            return false;
         if (reason)
-        {
-            if (auto it = vars[x].lbs.find(v); it != vars[x].lbs.end())
-                it->second.insert(reason);
+        { // we have a reason for this bound..
+            if (auto it = reason->lbs.find(x); it != reason->lbs.end())
+            { // we already have a lower bound for this variable in the reason..
+                if (it->second < v)
+                { // we update the lower bound only if the new one is more restrictive..
+                    vars.at(x).unset_lb(it->second, reason);
+                    it->second = v;
+                }
+            }
             else
-                vars[x].lbs.emplace(v, std::set<std::shared_ptr<constraint>>{reason});
-            reason->lbs.emplace(x, v);
+                reason->lbs.emplace(x, v);
         }
-        else
-        {
-            auto &lbs = vars[x].lbs;
-            auto it = lbs.upper_bound(v);
-            lbs.erase(lbs.begin(), it);
-            lbs.emplace(v, std::set<std::shared_ptr<constraint>>());
-        }
-
+        vars.at(x).set_lb(v, reason);
         if (val(x) < v && !is_basic(x))
             update(x, v);
         return true;
@@ -216,28 +204,24 @@ namespace linspire
     bool solver::set_ub(const utils::var x, const utils::inf_rational &v, std::shared_ptr<constraint> reason) noexcept
     {
         assert(x < vars.size());
+        assert(v < utils::rational::positive_infinite);
         LOG_TRACE("x" << std::to_string(x) << " = " << utils::to_string(val(x)) << " [" << utils::to_string(lb(x)) << ", " << utils::to_string(v) << " <- " << utils::to_string(ub(x)) << "]");
-        if (v >= ub(x))
-            return true; // no update needed..
-        else if (v < lb(x))
-            return false; // inconsistent bounds..
-
+        if (v < lb(x)) // inconsistent bound..
+            return false;
         if (reason)
-        {
-            if (auto it = vars[x].ubs.find(v); it != vars[x].ubs.end())
-                it->second.insert(reason);
+        { // we have a reason for this bound..
+            if (auto it = reason->ubs.find(x); it != reason->ubs.end())
+            { // we already have an upper bound for this variable in the reason..
+                if (it->second > v)
+                { // we update the upper bound only if the new one is more restrictive..
+                    vars.at(x).unset_ub(it->second, reason);
+                    it->second = v;
+                }
+            }
             else
-                vars[x].ubs.emplace(v, std::set<std::shared_ptr<constraint>>{reason});
-            reason->ubs.emplace(x, v);
+                reason->ubs.emplace(x, v);
         }
-        else
-        {
-            auto &ubs = vars[x].ubs;
-            auto it = ubs.lower_bound(v);
-            ubs.erase(it, ubs.end());
-            ubs.emplace(v, std::set<std::shared_ptr<constraint>>());
-        }
-
+        vars.at(x).set_ub(v, reason);
         if (val(x) > v && !is_basic(x))
             update(x, v);
         return true;
@@ -350,11 +334,6 @@ namespace linspire
         tableau.emplace(x, std::move(l));
     }
 
-    var::var(const utils::inf_rational &lb, const utils::inf_rational &ub) noexcept { assert(lb < ub); }
-
-    utils::inf_rational var::lb() const noexcept { return lbs.empty() ? utils::rational::negative_infinite : lbs.rbegin()->first; }
-    utils::inf_rational var::ub() const noexcept { return ubs.empty() ? utils::rational::positive_infinite : ubs.begin()->first; }
-
     std::string to_string(const solver &s) noexcept
     {
         std::string str;
@@ -380,18 +359,6 @@ namespace linspire
     }
 
     json::json to_json(const utils::rational &r) noexcept { return json::json{{"num", r.numerator()}, {"den", r.denominator()}}; }
-
-    std::string to_string(const var &x) noexcept { return utils::to_string(x.val) + " [" + utils::to_string(x.lb()) + ", " + utils::to_string(x.ub()) + "]"; }
-
-    json::json to_json(const var &x) noexcept
-    {
-        json::json j = linspire::to_json(x.val);
-        if (!x.lbs.empty())
-            j["lb"] = linspire::to_json(x.lbs.rbegin()->first);
-        if (!x.ubs.empty())
-            j["ub"] = linspire::to_json(x.ubs.begin()->first);
-        return j;
-    }
 
     json::json to_json(const utils::inf_rational &r) noexcept
     {
