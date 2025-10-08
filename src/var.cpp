@@ -4,7 +4,7 @@
 
 namespace linspire
 {
-    var::var(const utils::var id, const utils::inf_rational &lb, const utils::inf_rational &ub) noexcept : id(id) { assert(lb < ub); }
+    var::var(const utils::inf_rational &lb, const utils::inf_rational &ub) noexcept { assert(lb < ub); }
 
     utils::inf_rational var::get_lb() const noexcept { return lbs.empty() ? utils::rational::negative_infinite : lbs.rbegin()->first; }
     utils::inf_rational var::get_ub() const noexcept { return ubs.empty() ? utils::rational::positive_infinite : ubs.begin()->first; }

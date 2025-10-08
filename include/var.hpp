@@ -15,7 +15,7 @@ namespace linspire
     friend class solver;
 
   public:
-    var(const utils::var id, const utils::inf_rational &lb = utils::inf_rational(utils::rational::negative_infinite), const utils::inf_rational &ub = utils::inf_rational(utils::rational::positive_infinite)) noexcept;
+    var(const utils::inf_rational &lb = utils::inf_rational(utils::rational::negative_infinite), const utils::inf_rational &ub = utils::inf_rational(utils::rational::positive_infinite)) noexcept;
 
     [[nodiscard]] utils::inf_rational get_lb() const noexcept;
     [[nodiscard]] utils::inf_rational get_ub() const noexcept;
@@ -31,7 +31,6 @@ namespace linspire
     void unset_ub(const utils::inf_rational &v, std::shared_ptr<const constraint> reason) noexcept;
 
   private:
-    const utils::var id;                                                                 // the id of this variable in the solver..
     std::map<utils::inf_rational, std::set<std::shared_ptr<const constraint>>> lbs, ubs; // the lower and upper bounds with their reasons..
     utils::inf_rational val;                                                             // the current value of this variable..
   };

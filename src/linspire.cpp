@@ -9,7 +9,7 @@ namespace linspire
     {
         assert(lb <= ub);
         const auto x = vars.size();
-        vars.emplace_back(x, lb, ub);
+        vars.emplace_back(lb, ub);
         t_watches.emplace_back();
         return x;
     }
