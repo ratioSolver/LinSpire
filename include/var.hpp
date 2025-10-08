@@ -25,15 +25,15 @@ namespace linspire
     friend json::json to_json(const var &x) noexcept;
 
   private:
-    void set_lb(const utils::inf_rational &v, std::shared_ptr<constraint> reason = nullptr) noexcept;
-    void unset_lb(const utils::inf_rational &v, std::shared_ptr<constraint> reason) noexcept;
-    void set_ub(const utils::inf_rational &v, std::shared_ptr<constraint> reason = nullptr) noexcept;
-    void unset_ub(const utils::inf_rational &v, std::shared_ptr<constraint> reason) noexcept;
+    void set_lb(const utils::inf_rational &v, std::shared_ptr<const constraint> reason = nullptr) noexcept;
+    void unset_lb(const utils::inf_rational &v, std::shared_ptr<const constraint> reason) noexcept;
+    void set_ub(const utils::inf_rational &v, std::shared_ptr<const constraint> reason = nullptr) noexcept;
+    void unset_ub(const utils::inf_rational &v, std::shared_ptr<const constraint> reason) noexcept;
 
   private:
-    const utils::var id;                                                           // the id of this variable in the solver..
-    std::map<utils::inf_rational, std::set<std::shared_ptr<constraint>>> lbs, ubs; // the lower and upper bounds with their reasons..
-    utils::inf_rational val;                                                       // the current value of this variable..
+    const utils::var id;                                                                 // the id of this variable in the solver..
+    std::map<utils::inf_rational, std::set<std::shared_ptr<const constraint>>> lbs, ubs; // the lower and upper bounds with their reasons..
+    utils::inf_rational val;                                                             // the current value of this variable..
   };
 
   [[nodiscard]] std::string to_string(const var &x) noexcept;

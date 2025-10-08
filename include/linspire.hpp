@@ -182,7 +182,7 @@ namespace linspire
      *
      * @return A constant reference to a vector of shared pointers to constraint objects representing the last conflict explanation.
      */
-    [[nodiscard]] const std::vector<std::shared_ptr<constraint>> &get_conflict() const noexcept { return cnfl; }
+    [[nodiscard]] const std::vector<std::shared_ptr<const constraint>> &get_conflict() const noexcept { return cnfl; }
 
     friend std::string to_string(const solver &s) noexcept;
     friend json::json to_json(const solver &s) noexcept;
@@ -201,11 +201,11 @@ namespace linspire
 
     void new_row(const utils::var x, utils::lin &&l) noexcept;
 
-    std::vector<var> vars;                             // index is the variable id
-    std::unordered_map<std::string, utils::var> exprs; // the expressions (string to numeric variable) for which already exist slack variables..
-    std::map<utils::var, utils::lin> tableau;          // variable -> expression
-    std::vector<std::set<utils::var>> t_watches;       // for each variable `v`, a set of tableau rows watching `v`..
-    std::vector<std::shared_ptr<constraint>> cnfl;     // the last conflict explanation..
+    std::vector<var> vars;                               // index is the variable id
+    std::unordered_map<std::string, utils::var> exprs;   // the expressions (string to numeric variable) for which already exist slack variables..
+    std::map<utils::var, utils::lin> tableau;            // basic variable -> expression
+    std::vector<std::set<utils::var>> t_watches;         // for each variable `v`, a set of tableau rows watching `v`..
+    std::vector<std::shared_ptr<const constraint>> cnfl; // the last conflict explanation..
   };
 
   class constraint
