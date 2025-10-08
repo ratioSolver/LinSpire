@@ -226,8 +226,11 @@ namespace linspire
   public:
     var(const utils::inf_rational &lb = utils::inf_rational(utils::rational::negative_infinite), const utils::inf_rational &ub = utils::inf_rational(utils::rational::positive_infinite)) noexcept;
 
-    [[nodiscard]] std::string to_string() const noexcept;
-    [[nodiscard]] json::json to_json() const noexcept;
+    [[nodiscard]] utils::inf_rational lb() const noexcept;
+    [[nodiscard]] utils::inf_rational ub() const noexcept;
+
+    friend std::string to_string(const var &x) noexcept;
+    friend json::json to_json(const var &x) noexcept;
 
   private:
     std::map<utils::inf_rational, std::set<std::shared_ptr<constraint>>> lbs, ubs;
@@ -236,6 +239,8 @@ namespace linspire
 
   [[nodiscard]] std::string to_string(const solver &s) noexcept;
   [[nodiscard]] json::json to_json(const solver &s) noexcept;
+  [[nodiscard]] std::string to_string(const var &x) noexcept;
+  [[nodiscard]] json::json to_json(const var &x) noexcept;
   [[nodiscard]] json::json to_json(const utils::rational &r) noexcept;
   [[nodiscard]] json::json to_json(const utils::inf_rational &r) noexcept;
   [[nodiscard]] json::json to_json(const utils::lin &l) noexcept;

@@ -28,8 +28,8 @@ namespace linspire
         return slack;
     }
 
-    utils::inf_rational solver::lb(const utils::var x) const noexcept { return vars[x].lbs.rbegin()->first; }
-    utils::inf_rational solver::ub(const utils::var x) const noexcept { return vars[x].ubs.begin()->first; }
+    utils::inf_rational solver::lb(const utils::var x) const noexcept { return vars[x].lb(); }
+    utils::inf_rational solver::ub(const utils::var x) const noexcept { return vars[x].ub(); }
     utils::inf_rational solver::val(const utils::var x) const noexcept { return vars[x].val; }
 
     bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs, std::shared_ptr<constraint> reason) noexcept
@@ -350,32 +350,16 @@ namespace linspire
         tableau.emplace(x, std::move(l));
     }
 
-    var::var(const utils::inf_rational &lb, const utils::inf_rational &ub) noexcept
-    {
-        assert(lb <= ub);
-        lbs.emplace(lb, std::set<std::shared_ptr<constraint>>());
-        ubs.emplace(ub, std::set<std::shared_ptr<constraint>>());
-    }
+    var::var(const utils::inf_rational &lb, const utils::inf_rational &ub) noexcept { assert(lb < ub); }
 
-    std::string var::to_string() const noexcept { return utils::to_string(val) + " [" + utils::to_string(lbs.rbegin()->first) + ", " + utils::to_string(ubs.begin()->first) + "]"; }
-
-    json::json var::to_json() const noexcept
-    {
-        json::json j = linspire::to_json(val);
-        auto &lb = lbs.rbegin()->first;
-        if (!is_infinite(lb))
-            j["lb"] = linspire::to_json(lb);
-        auto &ub = ubs.begin()->first;
-        if (!is_infinite(ub))
-            j["ub"] = linspire::to_json(ub);
-        return j;
-    }
+    utils::inf_rational var::lb() const noexcept { return lbs.empty() ? utils::rational::negative_infinite : lbs.rbegin()->first; }
+    utils::inf_rational var::ub() const noexcept { return ubs.empty() ? utils::rational::positive_infinite : ubs.begin()->first; }
 
     std::string to_string(const solver &s) noexcept
     {
         std::string str;
         for (utils::var i = 0; i < s.vars.size(); ++i)
-            str += "x" + std::to_string(i) + " = " + s.vars[i].to_string() + "\n";
+            str += "x" + std::to_string(i) + " = " + to_string(s.vars.at(i)) + "\n";
         for (const auto &[v, expr] : s.tableau)
             str += "x" + std::to_string(v) + " = " + utils::to_string(expr) + "\n";
         return str;
@@ -386,7 +370,7 @@ namespace linspire
         json::json j;
         json::json j_vars;
         for (utils::var i = 0; i < s.vars.size(); ++i)
-            j_vars["x" + std::to_string(i)] = s.vars[i].to_json();
+            j_vars["x" + std::to_string(i)] = to_json(s.vars.at(i));
         j["vars"] = j_vars;
         json::json j_tableau;
         for (const auto &[v, expr] : s.tableau)
@@ -396,6 +380,18 @@ namespace linspire
     }
 
     json::json to_json(const utils::rational &r) noexcept { return json::json{{"num", r.numerator()}, {"den", r.denominator()}}; }
+
+    std::string to_string(const var &x) noexcept { return utils::to_string(x.val) + " [" + utils::to_string(x.lb()) + ", " + utils::to_string(x.ub()) + "]"; }
+
+    json::json to_json(const var &x) noexcept
+    {
+        json::json j = linspire::to_json(x.val);
+        if (!x.lbs.empty())
+            j["lb"] = linspire::to_json(x.lbs.rbegin()->first);
+        if (!x.ubs.empty())
+            j["ub"] = linspire::to_json(x.ubs.begin()->first);
+        return j;
+    }
 
     json::json to_json(const utils::inf_rational &r) noexcept
     {
