@@ -181,8 +181,15 @@ namespace linspire
         assert(x < vars.size());
         assert(v > utils::rational::negative_infinite);
         LOG_TRACE("x" << std::to_string(x) << " = " << utils::to_string(val(x)) << " [" << utils::to_string(lb(x)) << " -> " << utils::to_string(v) << ", " << utils::to_string(ub(x)) << "]");
-        if (v > ub(x)) // inconsistent bound..
+        if (v > ub(x))
+        { // inconsistent bound..
+            cnfl.clear();
+            if (reason)
+                cnfl.push_back(reason);
+            for (const auto &w : vars.at(x).ubs.begin()->second) // we use the most restrictive upper bound of x
+                cnfl.push_back(w);
             return false;
+        }
         if (reason)
         { // we have a reason for this bound..
             if (auto it = reason->lbs.find(x); it != reason->lbs.end())
@@ -206,8 +213,15 @@ namespace linspire
         assert(x < vars.size());
         assert(v < utils::rational::positive_infinite);
         LOG_TRACE("x" << std::to_string(x) << " = " << utils::to_string(val(x)) << " [" << utils::to_string(lb(x)) << ", " << utils::to_string(v) << " <- " << utils::to_string(ub(x)) << "]");
-        if (v < lb(x)) // inconsistent bound..
+        if (v < lb(x))
+        { // inconsistent bound..
+            cnfl.clear();
+            if (reason)
+                cnfl.push_back(reason);
+            for (const auto &w : vars.at(x).lbs.rbegin()->second) // we use the most restrictive lower bound of x
+                cnfl.push_back(w);
             return false;
+        }
         if (reason)
         { // we have a reason for this bound..
             if (auto it = reason->ubs.find(x); it != reason->ubs.end())
