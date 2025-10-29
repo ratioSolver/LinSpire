@@ -6,7 +6,7 @@
 
 namespace linspire
 {
-#ifdef LINSPIRE_BUILD_LISTENERS
+#ifdef LINSPIRE_ENABLE_LISTENERS
   class listener;
 #endif
 
@@ -188,7 +188,7 @@ namespace linspire
      */
     [[nodiscard]] const std::vector<std::shared_ptr<const constraint>> &get_conflict() const noexcept { return cnfl; }
 
-#ifdef LINSPIRE_BUILD_LISTENERS
+#ifdef LINSPIRE_ENABLE_LISTENERS
     /**
      * @brief Adds a listener to the solver.
      *
@@ -231,7 +231,7 @@ namespace linspire
     std::map<utils::var, utils::lin> tableau;            // basic variable -> expression
     std::vector<std::set<utils::var>> t_watches;         // for each variable `v`, a set of tableau rows watching `v`..
     std::vector<std::shared_ptr<const constraint>> cnfl; // the last conflict explanation..
-#ifdef LINSPIRE_BUILD_LISTENERS
+#ifdef LINSPIRE_ENABLE_LISTENERS
     std::unordered_map<utils::var, std::set<listener *>> listening; // for each variable, the listeners listening to it..
     std::set<std::shared_ptr<listener>> listeners;                  // the collection of listeners..
 #endif
@@ -245,7 +245,7 @@ namespace linspire
     std::map<utils::var, utils::inf_rational> lbs, ubs;
   };
 
-#ifdef LINSPIRE_BUILD_LISTENERS
+#ifdef LINSPIRE_ENABLE_LISTENERS
   class listener
   {
   public:
