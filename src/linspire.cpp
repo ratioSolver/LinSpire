@@ -3,6 +3,15 @@
 #include <algorithm>
 #include <cassert>
 
+#ifdef LINSPIRE_BUILD_LISTENERS
+#define FIRE_ON_VALUE_CHANGED(var)                                       \
+    if (const auto &at_v = listening.find(var); at_v != listening.end()) \
+        for (auto &l : at_v->second)                                     \
+            l->on_value_changed(var);
+#else
+#define FIRE_ON_VALUE_CHANGED(var)
+#endif
+
 namespace linspire
 {
     utils::var solver::new_var(const utils::inf_rational &lb, const utils::inf_rational &ub) noexcept
@@ -252,10 +261,12 @@ namespace linspire
         { // x_j = x_j + a_ji(v - x_i)..
             LOG_TRACE("x" << std::to_string(x_j) << " = " << utils::to_string(val(x_j)) << " -> " << utils::to_string(val(x_j) + tableau.at(x_j).vars.at(x_i) * (v - vars.at(x_i).val)) << " [" << utils::to_string(lb(x_j)) << ", " << utils::to_string(ub(x_j)) << "]");
             vars[x_j].val += tableau.at(x_j).vars.at(x_i) * (v - vars.at(x_i).val);
+            FIRE_ON_VALUE_CHANGED(x_j);
         }
 
         LOG_TRACE("x" << std::to_string(x_i) << " = " << utils::to_string(val(x_i)) << " -> " << utils::to_string(v) << " [" << utils::to_string(lb(x_i)) << ", " << utils::to_string(ub(x_i)) << "]");
         vars[x_i].val = v;
+        FIRE_ON_VALUE_CHANGED(x_i);
     }
 
     void solver::pivot_and_update(const utils::var x_i, const utils::var x_j, const utils::inf_rational &v) noexcept
@@ -269,9 +280,13 @@ namespace linspire
 
         const auto theta = (v - val(x_i)) / tableau.at(x_i).vars.at(x_j);
         LOG_TRACE("x" << std::to_string(x_i) << " = " << utils::to_string(val(x_i)) << " -> " << utils::to_string(v) << " [" << utils::to_string(lb(x_i)) << ", " << utils::to_string(ub(x_i)) << "]");
+        // x_i = v
         vars[x_i].val = v;
+        FIRE_ON_VALUE_CHANGED(x_i);
         LOG_TRACE("x" << std::to_string(x_j) << " = " << utils::to_string(val(x_j)) << " -> " << utils::to_string(val(x_j) + theta) << " [" << utils::to_string(lb(x_j)) << ", " << utils::to_string(ub(x_j)) << "]");
+        // x_j += theta
         vars[x_j].val += theta;
+        FIRE_ON_VALUE_CHANGED(x_j);
 
         // the tableau rows containing `x_j` as a non-basic variable..
         for (const auto &x_k : t_watches[x_j])
@@ -279,6 +294,7 @@ namespace linspire
             { // x_k += a_kj * theta..
                 LOG_TRACE("x" << std::to_string(x_k) << " = " << utils::to_string(val(x_k)) << " -> " << utils::to_string(val(x_k) + tableau.at(x_k).vars.at(x_j) * theta) << " [" << utils::to_string(lb(x_k)) << ", " << utils::to_string(ub(x_k)) << "]");
                 vars[x_k].val += tableau.at(x_k).vars.at(x_j) * theta;
+                FIRE_ON_VALUE_CHANGED(x_k);
             }
 
         pivot(x_i, x_j);
@@ -347,6 +363,9 @@ namespace linspire
             t_watches.at(v).insert(x);
         tableau.emplace(x, std::move(l));
     }
+
+    void solver::add_listener(std::shared_ptr<listener> l) noexcept { listeners.insert(l); }
+    void solver::remove_listener(std::shared_ptr<listener> l) noexcept { listeners.erase(l); }
 
     std::string to_string(const solver &s) noexcept
     {

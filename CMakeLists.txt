@@ -4,6 +4,8 @@ project(LinSpire VERSION 0.2.0 LANGUAGES CXX)
 include(CTest)
 enable_testing()
 
+option(LINSPIRE_BUILD_LISTENERS "Enable listener functionality in LinSpire" OFF)
+
 add_library(LinSpire src/linspire.cpp src/var.cpp)
 target_compile_features(LinSpire PUBLIC cxx_std_17)
 target_include_directories(LinSpire PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
@@ -13,6 +15,11 @@ endif()
 add_dependencies(LinSpire json)
 target_link_libraries(LinSpire PUBLIC json)
 setup_sanitizers(LinSpire)
+
+message(STATUS "Enable listener functionality in LinSpire: ${LINSPIRE_BUILD_LISTENERS}")
+if(LINSPIRE_BUILD_LISTENERS)
+    target_compile_definitions(LinSpire PUBLIC LINSPIRE_BUILD_LISTENERS)
+endif()
 
 if(BUILD_TESTING)
     add_subdirectory(tests)
