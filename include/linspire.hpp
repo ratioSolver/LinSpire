@@ -188,6 +188,18 @@ namespace linspire
      */
     [[nodiscard]] const std::vector<std::shared_ptr<const constraint>> &get_conflict() const noexcept { return cnfl; }
 
+    /**
+     * @brief Checks if two linear expressions can be made equal.
+     *
+     * This function determines whether two linear expressions `l0` and `l1` can take on equal values
+     * based on the current constraints in the solver.
+     *
+     * @param l0 The first linear expression to compare.
+     * @param l1 The second linear expression to compare.
+     * @return true if the linear expressions can be equal; false otherwise.
+     */
+    [[nodiscard]] bool match(const utils::lin &l0, const utils::lin &l1) const noexcept;
+
 #ifdef LINSPIRE_ENABLE_LISTENERS
     /**
      * @brief Adds a listener to the solver.

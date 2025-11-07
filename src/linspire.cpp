@@ -185,6 +185,8 @@ namespace linspire
         }
     }
 
+    bool solver::match(const utils::lin &l0, const utils::lin &l1) const noexcept { return lb(l0) <= ub(l1) && ub(l0) >= lb(l1); }
+
     bool solver::set_lb(const utils::var x, const utils::inf_rational &v, std::shared_ptr<constraint> reason) noexcept
     {
         assert(x < vars.size());
