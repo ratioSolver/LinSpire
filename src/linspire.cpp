@@ -41,7 +41,7 @@ namespace linspire
     utils::inf_rational solver::ub(const utils::var x) const noexcept { return vars[x].get_ub(); }
     utils::inf_rational solver::val(const utils::var x) const noexcept { return vars[x].val; }
 
-    bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs, const std::optional<std::reference_wrapper<constraint>> &reason) noexcept
+    bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs, constraint *reason) noexcept
     {
         LOG_TRACE(utils::to_string(lhs) + " == " + utils::to_string(rhs));
         utils::lin expr = lhs - rhs;
@@ -79,7 +79,7 @@ namespace linspire
         }
     }
 
-    bool solver::new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict, const std::optional<std::reference_wrapper<constraint>> &reason) noexcept
+    bool solver::new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict, constraint *reason) noexcept
     {
         LOG_TRACE(utils::to_string(lhs) + (strict ? " < " : " <= ") + utils::to_string(rhs));
         utils::lin expr = lhs - rhs;
@@ -152,12 +152,12 @@ namespace linspire
                     for (const auto &[v, c] : l.vars)
                         if (is_positive(c)) // we use the most restrictive upper bound of v
                             for (const auto &w : vars.at(v).ubs.begin()->second)
-                                cnfl.push_back(*w);
+                                cnfl.push_back(w);
                         else if (is_negative(c)) // we use the most restrictive lower bound of v
                             for (const auto &w : vars.at(v).lbs.rbegin()->second)
-                                cnfl.push_back(*w);
+                                cnfl.push_back(w);
                     for (const auto &w : vars.at(x_i).lbs.rbegin()->second) // we use the most restrictive lower bound of x_i
-                        cnfl.push_back(*w);
+                        cnfl.push_back(w);
                     return false;
                 }
             }
@@ -173,12 +173,12 @@ namespace linspire
                     for (const auto &[v, c] : l.vars)
                         if (is_positive(c)) // we use the most restrictive lower bound of v
                             for (const auto &w : vars.at(v).lbs.rbegin()->second)
-                                cnfl.push_back(*w);
+                                cnfl.push_back(w);
                         else if (is_negative(c)) // we use the most restrictive upper bound of v
                             for (const auto &w : vars.at(v).ubs.begin()->second)
-                                cnfl.push_back(*w);
+                                cnfl.push_back(w);
                     for (const auto &w : vars.at(x_i).ubs.begin()->second) // we use the most restrictive upper bound of x_i
-                        cnfl.push_back(*w);
+                        cnfl.push_back(w);
                     return false;
                 }
             }
@@ -187,7 +187,7 @@ namespace linspire
 
     bool solver::match(const utils::lin &l0, const utils::lin &l1) const noexcept { return lb(l0) <= ub(l1) && ub(l0) >= lb(l1); }
 
-    bool solver::set_lb(const utils::var x, const utils::inf_rational &v, const std::optional<std::reference_wrapper<constraint>> &reason) noexcept
+    bool solver::set_lb(const utils::var x, const utils::inf_rational &v, constraint *reason) noexcept
     {
         assert(x < vars.size());
         assert(v > utils::rational::negative_infinite);
@@ -196,30 +196,30 @@ namespace linspire
         { // inconsistent bound..
             cnfl.clear();
             if (reason)
-                cnfl.push_back(reason.value());
+                cnfl.push_back(reason);
             for (const auto &w : vars.at(x).ubs.begin()->second) // we use the most restrictive upper bound of x
-                cnfl.push_back(*w);
+                cnfl.push_back(w);
             return false;
         }
         if (reason)
         { // we have a reason for this bound..
-            if (auto it = reason->get().lbs.find(x); it != reason->get().lbs.end())
+            if (auto it = reason->lbs.find(x); it != reason->lbs.end())
             { // we already have a lower bound for this variable in the reason..
                 if (it->second < v)
                 { // we update the lower bound only if the new one is more restrictive..
-                    vars.at(x).unset_lb(it->second, reason->get());
+                    vars.at(x).unset_lb(it->second, *reason);
                     it->second = v;
                 }
             }
             else
-                reason->get().lbs.emplace(x, v);
+                reason->lbs.emplace(x, v);
         }
         vars.at(x).set_lb(v, reason);
         if (val(x) < v && !is_basic(x))
             update(x, v);
         return true;
     }
-    bool solver::set_ub(const utils::var x, const utils::inf_rational &v, const std::optional<std::reference_wrapper<constraint>> &reason) noexcept
+    bool solver::set_ub(const utils::var x, const utils::inf_rational &v, constraint *reason) noexcept
     {
         assert(x < vars.size());
         assert(v < utils::rational::positive_infinite);
@@ -228,23 +228,23 @@ namespace linspire
         { // inconsistent bound..
             cnfl.clear();
             if (reason)
-                cnfl.push_back(reason.value());
+                cnfl.push_back(reason);
             for (const auto &w : vars.at(x).lbs.rbegin()->second) // we use the most restrictive lower bound of x
-                cnfl.push_back(*w);
+                cnfl.push_back(w);
             return false;
         }
         if (reason)
         { // we have a reason for this bound..
-            if (auto it = reason->get().ubs.find(x); it != reason->get().ubs.end())
+            if (auto it = reason->ubs.find(x); it != reason->ubs.end())
             { // we already have an upper bound for this variable in the reason..
                 if (it->second > v)
                 { // we update the upper bound only if the new one is more restrictive..
-                    vars.at(x).unset_ub(it->second, reason->get());
+                    vars.at(x).unset_ub(it->second, *reason);
                     it->second = v;
                 }
             }
             else
-                reason->get().ubs.emplace(x, v);
+                reason->ubs.emplace(x, v);
         }
         vars.at(x).set_ub(v, reason);
         if (val(x) > v && !is_basic(x))

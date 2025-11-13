@@ -9,15 +9,15 @@ namespace linspire
     utils::inf_rational var::get_lb() const noexcept { return lbs.empty() ? utils::rational::negative_infinite : lbs.rbegin()->first; }
     utils::inf_rational var::get_ub() const noexcept { return ubs.empty() ? utils::rational::positive_infinite : ubs.begin()->first; }
 
-    void var::set_lb(const utils::inf_rational &v, std::optional<constraint> reason) noexcept
+    void var::set_lb(const utils::inf_rational &v, constraint *reason) noexcept
     {
         assert(v <= get_ub()); // we cannot set a lower bound greater than the current upper bound..
         if (reason)
         { // we add a new lower bound `v` with the given reason..
             if (auto it = lbs.find(v); it != lbs.end())
-                it->second.insert(&*reason); // we add the reason to the existing lower bound `v`..
+                it->second.insert(reason); // we add the reason to the existing lower bound `v`..
             else
-                lbs.emplace(v, std::set<constraint *>{&*reason}); // we create a new lower bound `v`..
+                lbs.emplace(v, std::set<constraint *>{reason}); // we create a new lower bound `v`..
         }
         else
         { // we remove all the lower bounds that are less than `v`..
@@ -35,15 +35,15 @@ namespace linspire
             lbs.erase(it);
     }
 
-    void var::set_ub(const utils::inf_rational &v, std::optional<constraint> reason) noexcept
+    void var::set_ub(const utils::inf_rational &v, constraint *reason) noexcept
     {
         assert(v >= get_lb()); // we cannot set an upper bound less than the current lower bound..
         if (reason)
         { // we add a new upper bound `v` with the given reason..
             if (auto it = ubs.find(v); it != ubs.end())
-                it->second.insert(&*reason); // we add the reason to the existing upper bound `v`..
+                it->second.insert(reason); // we add the reason to the existing upper bound `v`..
             else
-                ubs.emplace(v, std::set<constraint *>{&*reason}); // we create a new upper bound `v`..
+                ubs.emplace(v, std::set<constraint *>{reason}); // we create a new upper bound `v`..
         }
         else
         { // we remove all the upper bounds that are greater than `v`..
