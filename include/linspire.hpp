@@ -155,6 +155,16 @@ namespace linspire
     [[nodiscard]] bool new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, std::optional<std::reference_wrapper<constraint>> reason = std::nullopt) noexcept;
 
     /**
+     * @brief Adds a previously created constraint to the solver.
+     *
+     * This function incorporates a previously defined constraint into the solver. It updates
+     * the internal state of the solver to account for the new constraint.
+     *
+     * @param c The constraint to be added.
+     */
+    void add_constraint(const constraint &c) noexcept;
+
+    /**
      * @brief Retracts a previously added constraint from the solver.
      *
      * This function removes a previously added constraint from the solver. It updates the
@@ -162,7 +172,7 @@ namespace linspire
      *
      * @param c The constraint to be retracted.
      */
-    void retract(constraint &c) noexcept;
+    void retract(const constraint &c) noexcept;
 
     /**
      * @brief Checks the consistency of the current set of constraints.
@@ -185,7 +195,7 @@ namespace linspire
      *
      * @return A constant reference to the vector of constraints representing the last conflict explanation.
      */
-    [[nodiscard]] const std::vector<std::reference_wrapper<constraint>> &get_conflict() const noexcept { return cnfl; }
+    [[nodiscard]] const std::vector<std::reference_wrapper<const constraint>> &get_conflict() const noexcept { return cnfl; }
 
     /**
      * @brief Checks if two linear expressions can be made equal.
@@ -237,11 +247,11 @@ namespace linspire
 
     void new_row(const utils::var x, utils::lin &&l) noexcept;
 
-    std::vector<var> vars;                                // index is the variable id
-    std::unordered_map<std::string, utils::var> exprs;    // the expressions (string to numeric variable) for which already exist slack variables..
-    std::map<utils::var, utils::lin> tableau;             // basic variable -> expression
-    std::vector<std::set<utils::var>> t_watches;          // for each variable `v`, a set of tableau rows watching `v`..
-    std::vector<std::reference_wrapper<constraint>> cnfl; // the last conflict explanation..
+    std::vector<var> vars;                                      // index is the variable id
+    std::unordered_map<std::string, utils::var> exprs;          // the expressions (string to numeric variable) for which already exist slack variables..
+    std::map<utils::var, utils::lin> tableau;                   // basic variable -> expression
+    std::vector<std::set<utils::var>> t_watches;                // for each variable `v`, a set of tableau rows watching `v`..
+    std::vector<std::reference_wrapper<const constraint>> cnfl; // the last conflict explanation..
 #ifdef LINSPIRE_ENABLE_LISTENERS
     std::unordered_map<utils::var, std::set<listener *>> listening; // for each variable, the listeners listening to it..
     std::set<listener *> listeners;                                 // the collection of listeners..

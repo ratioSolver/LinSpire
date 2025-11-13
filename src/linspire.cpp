@@ -119,14 +119,20 @@ namespace linspire
     }
     bool solver::new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict, std::optional<std::reference_wrapper<constraint>> reason) noexcept { return new_lt(rhs, lhs, strict, reason); }
 
-    void solver::retract(constraint &c) noexcept
+    void solver::add_constraint(const constraint &c) noexcept
+    {
+        for (const auto &[x, lb] : c.lbs)
+            vars[x].set_lb(lb, c);
+        for (const auto &[x, ub] : c.ubs)
+            vars[x].set_ub(ub, c);
+    }
+
+    void solver::retract(const constraint &c) noexcept
     {
         for (const auto &[x, lb] : c.lbs)
             vars[x].unset_lb(lb, c);
-        c.lbs.clear();
         for (const auto &[x, ub] : c.ubs)
             vars[x].unset_ub(ub, c);
-        c.ubs.clear();
     }
 
     bool solver::check() noexcept

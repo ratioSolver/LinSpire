@@ -26,14 +26,14 @@ namespace linspire
     friend json::json to_json(const var &x) noexcept;
 
   private:
-    void set_lb(const utils::inf_rational &v, std::optional<std::reference_wrapper<constraint>> reason = std::nullopt) noexcept;
-    void unset_lb(const utils::inf_rational &v, constraint &reason) noexcept;
-    void set_ub(const utils::inf_rational &v, std::optional<std::reference_wrapper<constraint>> reason = std::nullopt) noexcept;
-    void unset_ub(const utils::inf_rational &v, constraint &reason) noexcept;
+    void set_lb(const utils::inf_rational &v, std::optional<std::reference_wrapper<const constraint>> reason = std::nullopt) noexcept;
+    void unset_lb(const utils::inf_rational &v, const constraint &reason) noexcept;
+    void set_ub(const utils::inf_rational &v, std::optional<std::reference_wrapper<const constraint>> reason = std::nullopt) noexcept;
+    void unset_ub(const utils::inf_rational &v, const constraint &reason) noexcept;
 
   private:
-    std::map<utils::inf_rational, std::set<constraint *>> lbs, ubs; // the lower and upper bounds with their reasons..
-    utils::inf_rational val;                                        // the current value of this variable..
+    std::map<utils::inf_rational, std::set<const constraint *>> lbs, ubs; // the lower and upper bounds with their reasons..
+    utils::inf_rational val;                                              // the current value of this variable..
   };
 
   [[nodiscard]] std::string to_string(const var &x) noexcept;

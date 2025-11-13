@@ -183,6 +183,46 @@ void test4()
     assert(cons);
 }
 
+/**
+ * @brief Unit test for adding, retracting, and re-adding a constraint.
+ *
+ * This test verifies:
+ * - Adding a constraint and checking consistency.
+ * - Retracting the constraint and ensuring bounds are reset.
+ * - Adding the same constraint again and checking consistency.
+ */
+void test5()
+{
+    linspire::solver s;
+    auto x = s.new_var();
+
+    linspire::constraint c0;
+
+    // Add constraint: x >= 5
+    bool res0 = s.new_gt({{x, 1}}, 5, false, c0);
+    assert(res0);
+    bool cons = s.check();
+    assert(cons);
+    assert(s.lb(x) == 5);
+    assert(s.ub(x) == utils::rational::positive_infinite);
+    assert(s.val(x) >= 5);
+
+    // Retract constraint
+    s.retract(c0);
+    cons = s.check();
+    assert(cons);
+    assert(s.lb(x) == utils::rational::negative_infinite);
+    assert(s.ub(x) == utils::rational::positive_infinite);
+
+    // Add the same constraint again
+    s.add_constraint(c0);
+    cons = s.check();
+    assert(cons);
+    assert(s.lb(x) == 5);
+    assert(s.ub(x) == utils::rational::positive_infinite);
+    assert(s.val(x) >= 5);
+}
+
 int main()
 {
     test0();
@@ -190,6 +230,7 @@ int main()
     test2();
     test3();
     test4();
+    test5();
 
     return 0;
 }
