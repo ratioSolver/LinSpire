@@ -5,6 +5,7 @@
 #include "json.hpp"
 #include <set>
 #include <optional>
+#include <functional>
 
 namespace linspire
 {
@@ -25,9 +26,9 @@ namespace linspire
     friend json::json to_json(const var &x) noexcept;
 
   private:
-    void set_lb(const utils::inf_rational &v, constraint *reason = nullptr) noexcept;
+    void set_lb(const utils::inf_rational &v, std::optional<std::reference_wrapper<constraint>> reason = std::nullopt) noexcept;
     void unset_lb(const utils::inf_rational &v, constraint &reason) noexcept;
-    void set_ub(const utils::inf_rational &v, constraint *reason = nullptr) noexcept;
+    void set_ub(const utils::inf_rational &v, std::optional<std::reference_wrapper<constraint>> reason = std::nullopt) noexcept;
     void unset_ub(const utils::inf_rational &v, constraint &reason) noexcept;
 
   private:

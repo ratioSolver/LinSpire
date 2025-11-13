@@ -86,10 +86,10 @@ void test2()
     linspire::constraint c0;
 
     // x >= 0
-    bool res0 = s.new_gt({{x, 1}}, 0, false, &c0);
+    bool res0 = s.new_gt({{x, 1}}, 0, false, c0);
     assert(res0);
     // x >= 1 (we add this constraint with the same reason as the previous one)
-    bool res1 = s.new_gt({{x, 1}}, 1, false, &c0);
+    bool res1 = s.new_gt({{x, 1}}, 1, false, c0);
     assert(res1);
 
     auto cons = s.check();
@@ -121,10 +121,10 @@ void test3()
     linspire::constraint c1;
 
     // y >= x + 1
-    bool res0 = s.new_gt({{y, 1}, {x, -1}}, 1, false, &c0);
+    bool res0 = s.new_gt({{y, 1}, {x, -1}}, 1, false, c0);
     assert(res0);
     // z >= y + 1
-    bool res1 = s.new_gt({{z, 1}, {y, -1}}, 1, false, &c1);
+    bool res1 = s.new_gt({{z, 1}, {y, -1}}, 1, false, c1);
     assert(res1);
     bool cons = s.check();
     assert(cons);
@@ -161,22 +161,22 @@ void test4()
     linspire::constraint c2;
 
     // x + y >= 1
-    bool res0 = s.new_gt({{x, 1}, {y, 1}}, 1, false, &c0);
+    bool res0 = s.new_gt({{x, 1}, {y, 1}}, 1, false, c0);
     assert(res0);
     // x >= 2
-    bool res1 = s.new_gt({{x, 1}}, 2, false, &c1);
+    bool res1 = s.new_gt({{x, 1}}, 2, false, c1);
     assert(res1);
     bool cons = s.check();
     assert(cons);
 
     // x + y <= 0
-    bool res2 = s.new_lt({{x, 1}, {y, 1}}, 0, false, &c2);
+    bool res2 = s.new_lt({{x, 1}, {y, 1}}, 0, false, c2);
     assert(res2);
     cons = s.check();
     assert(!cons);
     auto expl = s.get_conflict();
     assert(expl.size() == 2);
-    assert((expl[0] == &c0 && expl[1] == &c2) || (expl[0] == &c2 && expl[1] == &c0));
+    assert((&expl[0].get() == &c0 && &expl[1].get() == &c2) || (&expl[0].get() == &c2 && &expl[1].get() == &c0));
 
     s.retract(c0);
     cons = s.check();

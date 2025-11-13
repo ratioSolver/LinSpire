@@ -126,7 +126,7 @@ namespace linspire
      * @param reason An optional constraint that serves as the reason for adding this new constraint.
      * @return true if the constraint was successfully added; false if it leads to inconsistency.
      */
-    [[nodiscard]] bool new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, constraint *reason = nullptr) noexcept;
+    [[nodiscard]] bool new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, std::optional<std::reference_wrapper<constraint>> reason = std::nullopt) noexcept;
     /**
      * @brief Adds a new equality constraint to the solver.
      *
@@ -138,7 +138,7 @@ namespace linspire
      * @param reason An optional constraint that serves as the reason for adding this new equality constraint.
      * @return true if the equality constraint was successfully added; false if it leads to inconsistency.
      */
-    [[nodiscard]] bool new_eq(const utils::lin &lhs, const utils::lin &rhs, constraint *reason = nullptr) noexcept;
+    [[nodiscard]] bool new_eq(const utils::lin &lhs, const utils::lin &rhs, std::optional<std::reference_wrapper<constraint>> reason = std::nullopt) noexcept;
     /**
      * @brief Adds a new greater-than or greater-than-or-equal-to constraint to the solver.
      *
@@ -152,7 +152,7 @@ namespace linspire
      * @param reason An optional constraint that serves as the reason for adding this new constraint.
      * @return true if the constraint was successfully added; false if it leads to inconsistency.
      */
-    [[nodiscard]] bool new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, constraint *reason = nullptr) noexcept { return new_lt(rhs, lhs, strict, reason); }
+    [[nodiscard]] bool new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, std::optional<std::reference_wrapper<constraint>> reason = std::nullopt) noexcept;
 
     /**
      * @brief Retracts a previously added constraint from the solver.
@@ -185,7 +185,7 @@ namespace linspire
      *
      * @return A constant reference to the vector of constraints representing the last conflict explanation.
      */
-    [[nodiscard]] const std::vector<constraint *> &get_conflict() const noexcept { return cnfl; }
+    [[nodiscard]] const std::vector<std::reference_wrapper<constraint>> &get_conflict() const noexcept { return cnfl; }
 
     /**
      * @brief Checks if two linear expressions can be made equal.
@@ -226,8 +226,8 @@ namespace linspire
   private:
     [[nodiscard]] bool is_basic(const utils::var v) const noexcept { return tableau.count(v); }
 
-    [[nodiscard]] bool set_lb(const utils::var x_i, const utils::inf_rational &v, constraint *reason = nullptr) noexcept;
-    [[nodiscard]] bool set_ub(const utils::var x_i, const utils::inf_rational &v, constraint *reason = nullptr) noexcept;
+    [[nodiscard]] bool set_lb(const utils::var x_i, const utils::inf_rational &v, std::optional<std::reference_wrapper<constraint>> reason = std::nullopt) noexcept;
+    [[nodiscard]] bool set_ub(const utils::var x_i, const utils::inf_rational &v, std::optional<std::reference_wrapper<constraint>> reason = std::nullopt) noexcept;
 
     void update(const utils::var x_i, const utils::inf_rational &v) noexcept;
 
@@ -237,11 +237,11 @@ namespace linspire
 
     void new_row(const utils::var x, utils::lin &&l) noexcept;
 
-    std::vector<var> vars;                             // index is the variable id
-    std::unordered_map<std::string, utils::var> exprs; // the expressions (string to numeric variable) for which already exist slack variables..
-    std::map<utils::var, utils::lin> tableau;          // basic variable -> expression
-    std::vector<std::set<utils::var>> t_watches;       // for each variable `v`, a set of tableau rows watching `v`..
-    std::vector<constraint *> cnfl;                    // the last conflict explanation..
+    std::vector<var> vars;                                // index is the variable id
+    std::unordered_map<std::string, utils::var> exprs;    // the expressions (string to numeric variable) for which already exist slack variables..
+    std::map<utils::var, utils::lin> tableau;             // basic variable -> expression
+    std::vector<std::set<utils::var>> t_watches;          // for each variable `v`, a set of tableau rows watching `v`..
+    std::vector<std::reference_wrapper<constraint>> cnfl; // the last conflict explanation..
 #ifdef LINSPIRE_ENABLE_LISTENERS
     std::unordered_map<utils::var, std::set<listener *>> listening; // for each variable, the listeners listening to it..
     std::set<listener *> listeners;                                 // the collection of listeners..
