@@ -117,13 +117,7 @@ namespace linspire
             return reason ? set_ub(slack, c_right, reason.value()) : set_ub(slack, c_right); // we are in the case `expr < c_right`..
         }
     }
-    bool solver::new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict, std::optional<std::reference_wrapper<constraint>> reason) noexcept
-    {
-        if (reason)
-            return new_lt(rhs, lhs, strict, *reason);
-        else
-            return new_lt(rhs, lhs, strict);
-    }
+    bool solver::new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict, std::optional<std::reference_wrapper<constraint>> reason) noexcept { return new_lt(rhs, lhs, strict, reason); }
 
     void solver::retract(constraint &c) noexcept
     {
