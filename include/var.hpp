@@ -4,7 +4,7 @@
 #include "inf_rational.hpp"
 #include "json.hpp"
 #include <set>
-#include <memory>
+#include <optional>
 
 namespace linspire
 {
@@ -25,14 +25,14 @@ namespace linspire
     friend json::json to_json(const var &x) noexcept;
 
   private:
-    void set_lb(const utils::inf_rational &v, std::shared_ptr<const constraint> reason = nullptr) noexcept;
-    void unset_lb(const utils::inf_rational &v, std::shared_ptr<const constraint> reason) noexcept;
-    void set_ub(const utils::inf_rational &v, std::shared_ptr<const constraint> reason = nullptr) noexcept;
-    void unset_ub(const utils::inf_rational &v, std::shared_ptr<const constraint> reason) noexcept;
+    void set_lb(const utils::inf_rational &v, std::optional<constraint> reason = std::nullopt) noexcept;
+    void unset_lb(const utils::inf_rational &v, constraint &reason) noexcept;
+    void set_ub(const utils::inf_rational &v, std::optional<constraint> reason = std::nullopt) noexcept;
+    void unset_ub(const utils::inf_rational &v, constraint &reason) noexcept;
 
   private:
-    std::map<utils::inf_rational, std::set<std::shared_ptr<const constraint>>> lbs, ubs; // the lower and upper bounds with their reasons..
-    utils::inf_rational val;                                                             // the current value of this variable..
+    std::map<utils::inf_rational, std::set<constraint *>> lbs, ubs; // the lower and upper bounds with their reasons..
+    utils::inf_rational val;                                        // the current value of this variable..
   };
 
   [[nodiscard]] std::string to_string(const var &x) noexcept;

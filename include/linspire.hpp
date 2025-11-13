@@ -1,7 +1,6 @@
 #pragma once
 
 #include "var.hpp"
-#include <set>
 #include <unordered_map>
 
 namespace linspire
@@ -124,10 +123,10 @@ namespace linspire
      * @param lhs The left-hand side linear expression of the constraint.
      * @param rhs The right-hand side linear expression of the constraint.
      * @param strict A boolean indicating whether the constraint is strict (default: false).
-     * @param reason An optional shared pointer to a constraint object that serves as the reason for this constraint.
+     * @param reason An optional constraint that serves as the reason for adding this new constraint.
      * @return true if the constraint was successfully added; false if it leads to inconsistency.
      */
-    [[nodiscard]] bool new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, std::shared_ptr<constraint> reason = nullptr) noexcept;
+    [[nodiscard]] bool new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, const std::optional<std::reference_wrapper<constraint>> &reason = std::nullopt) noexcept;
     /**
      * @brief Adds a new equality constraint to the solver.
      *
@@ -136,10 +135,10 @@ namespace linspire
      *
      * @param lhs The left-hand side linear expression of the equality constraint.
      * @param rhs The right-hand side linear expression of the equality constraint.
-     * @param reason An optional shared pointer to a constraint object that serves as the reason for this equality constraint.
+     * @param reason An optional constraint that serves as the reason for adding this new equality constraint.
      * @return true if the equality constraint was successfully added; false if it leads to inconsistency.
      */
-    [[nodiscard]] bool new_eq(const utils::lin &lhs, const utils::lin &rhs, std::shared_ptr<constraint> reason = nullptr) noexcept;
+    [[nodiscard]] bool new_eq(const utils::lin &lhs, const utils::lin &rhs, const std::optional<std::reference_wrapper<constraint>> &reason = std::nullopt) noexcept;
     /**
      * @brief Adds a new greater-than or greater-than-or-equal-to constraint to the solver.
      *
@@ -150,10 +149,10 @@ namespace linspire
      * @param lhs The left-hand side linear expression of the constraint.
      * @param rhs The right-hand side linear expression of the constraint.
      * @param strict A boolean indicating whether the constraint is strict (default: false).
-     * @param reason An optional shared pointer to a constraint object that serves as the reason for this constraint.
+     * @param reason An optional constraint that serves as the reason for adding this new constraint.
      * @return true if the constraint was successfully added; false if it leads to inconsistency.
      */
-    [[nodiscard]] bool new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, std::shared_ptr<constraint> reason = nullptr) noexcept { return new_lt(rhs, lhs, strict, reason); }
+    [[nodiscard]] bool new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict = false, const std::optional<std::reference_wrapper<constraint>> &reason = std::nullopt) noexcept { return new_lt(rhs, lhs, strict, reason); }
 
     /**
      * @brief Retracts a previously added constraint from the solver.
@@ -161,9 +160,9 @@ namespace linspire
      * This function removes a previously added constraint from the solver. It updates the
      * internal state of the solver to reflect the removal of the constraint.
      *
-     * @param c A shared pointer to the constraint object to be retracted.
+     * @param c The constraint to be retracted.
      */
-    void retract(const std::shared_ptr<constraint> c) noexcept;
+    void retract(constraint &c) noexcept;
 
     /**
      * @brief Checks the consistency of the current set of constraints.
@@ -184,9 +183,9 @@ namespace linspire
      * The conflict explanation consists of a set of constraints that led to an inconsistency
      * in the solver.
      *
-     * @return A constant reference to a vector of shared pointers to constraint objects representing the last conflict explanation.
+     * @return A constant reference to the vector of constraints representing the last conflict explanation.
      */
-    [[nodiscard]] const std::vector<std::shared_ptr<const constraint>> &get_conflict() const noexcept { return cnfl; }
+    [[nodiscard]] const std::vector<std::reference_wrapper<constraint>> &get_conflict() const noexcept { return cnfl; }
 
     /**
      * @brief Checks if two linear expressions can be made equal.
@@ -204,21 +203,21 @@ namespace linspire
     /**
      * @brief Adds a listener to the solver.
      *
-     * This function registers a listener that will be notified of variable value changes
+     * This function registers a listener that will be notified of changes to variable values
      * within the solver. The listener must implement the `listener` interface.
      *
-     * @param l A shared pointer to the listener to be added.
+     * @param l A reference to the listener to be added.
      */
-    void add_listener(std::shared_ptr<listener> l) noexcept;
+    void add_listener(listener &l) noexcept;
     /**
      * @brief Removes a listener from the solver.
      *
-     * This function unregisters a previously added listener from the solver. The listener
-     * will no longer receive notifications of variable value changes.
+     * This function unregisters a previously added listener from the solver. The listener will
+     * no longer receive notifications of variable value changes.
      *
-     * @param l A shared pointer to the listener to be removed.
+     * @param l A reference to the listener to be removed.
      */
-    void remove_listener(std::shared_ptr<listener> l) noexcept;
+    void remove_listener(listener &l) noexcept;
 #endif
 
     friend std::string to_string(const solver &s) noexcept;
@@ -227,8 +226,8 @@ namespace linspire
   private:
     [[nodiscard]] bool is_basic(const utils::var v) const noexcept { return tableau.count(v); }
 
-    [[nodiscard]] bool set_lb(const utils::var x_i, const utils::inf_rational &v, std::shared_ptr<constraint> reason = nullptr) noexcept;
-    [[nodiscard]] bool set_ub(const utils::var x_i, const utils::inf_rational &v, std::shared_ptr<constraint> reason = nullptr) noexcept;
+    [[nodiscard]] bool set_lb(const utils::var x_i, const utils::inf_rational &v, const std::optional<std::reference_wrapper<constraint>> &reason = std::nullopt) noexcept;
+    [[nodiscard]] bool set_ub(const utils::var x_i, const utils::inf_rational &v, const std::optional<std::reference_wrapper<constraint>> &reason = std::nullopt) noexcept;
 
     void update(const utils::var x_i, const utils::inf_rational &v) noexcept;
 
@@ -238,14 +237,14 @@ namespace linspire
 
     void new_row(const utils::var x, utils::lin &&l) noexcept;
 
-    std::vector<var> vars;                               // index is the variable id
-    std::unordered_map<std::string, utils::var> exprs;   // the expressions (string to numeric variable) for which already exist slack variables..
-    std::map<utils::var, utils::lin> tableau;            // basic variable -> expression
-    std::vector<std::set<utils::var>> t_watches;         // for each variable `v`, a set of tableau rows watching `v`..
-    std::vector<std::shared_ptr<const constraint>> cnfl; // the last conflict explanation..
+    std::vector<var> vars;                                // index is the variable id
+    std::unordered_map<std::string, utils::var> exprs;    // the expressions (string to numeric variable) for which already exist slack variables..
+    std::map<utils::var, utils::lin> tableau;             // basic variable -> expression
+    std::vector<std::set<utils::var>> t_watches;          // for each variable `v`, a set of tableau rows watching `v`..
+    std::vector<std::reference_wrapper<constraint>> cnfl; // the last conflict explanation..
 #ifdef LINSPIRE_ENABLE_LISTENERS
     std::unordered_map<utils::var, std::set<listener *>> listening; // for each variable, the listeners listening to it..
-    std::set<std::shared_ptr<listener>> listeners;                  // the collection of listeners..
+    std::set<listener *> listeners;                                 // the collection of listeners..
 #endif
   };
 

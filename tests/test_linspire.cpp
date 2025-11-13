@@ -83,7 +83,7 @@ void test2()
     linspire::solver s;
     auto x = s.new_var();
 
-    auto c0 = std::make_shared<linspire::constraint>();
+    linspire::constraint c0;
 
     // x >= 0
     bool res0 = s.new_gt({{x, 1}}, 0, false, c0);
@@ -117,8 +117,8 @@ void test3()
     auto y = s.new_var();
     auto z = s.new_var();
 
-    auto c0 = std::make_shared<linspire::constraint>();
-    auto c1 = std::make_shared<linspire::constraint>();
+    linspire::constraint c0;
+    linspire::constraint c1;
 
     // y >= x + 1
     bool res0 = s.new_gt({{y, 1}, {x, -1}}, 1, false, c0);
@@ -156,9 +156,9 @@ void test4()
     auto x = s.new_var();
     auto y = s.new_var();
 
-    auto c0 = std::make_shared<linspire::constraint>();
-    auto c1 = std::make_shared<linspire::constraint>();
-    auto c2 = std::make_shared<linspire::constraint>();
+    linspire::constraint c0;
+    linspire::constraint c1;
+    linspire::constraint c2;
 
     // x + y >= 1
     bool res0 = s.new_gt({{x, 1}, {y, 1}}, 1, false, c0);
@@ -176,7 +176,7 @@ void test4()
     assert(!cons);
     auto expl = s.get_conflict();
     assert(expl.size() == 2);
-    assert((expl[0] == c0 && expl[1] == c2) || (expl[0] == c2 && expl[1] == c0));
+    assert((&expl[0] == &c0 && &expl[1] == &c2) || (&expl[0] == &c2 && &expl[1] == &c0));
 
     s.retract(c0);
     cons = s.check();
