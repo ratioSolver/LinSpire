@@ -68,14 +68,14 @@ namespace linspire
             assert(c != 0);
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term) / c; // the right-hand side of the constraint is the division of the negation of the known term by the coefficient..
             // we can set both the lower and upper bound of the variable to the right-hand side of the constraint..
-            return reason ? set_lb(x, c_right, reason.value()) && set_ub(x, c_right, reason.value()) : set_lb(x, c_right) && set_ub(x, c_right);
+            return set_lb(x, c_right, reason) && set_ub(x, c_right, reason);
         }
         default: // the expression is still a general linear expression..
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term);
             expr.known_term = utils::rational::zero;
             // we add the expression to the tableau, associating it with a new (slack) variable
             utils::var slack = new_var(std::move(expr));
-            return reason ? set_lb(slack, c_right, reason.value()) && set_ub(slack, c_right, reason.value()) : set_lb(slack, c_right) && set_ub(slack, c_right);
+            return set_lb(slack, c_right, reason) && set_ub(slack, c_right, reason);
         }
     }
     bool solver::new_lt(const utils::lin &lhs, const utils::lin &rhs, bool strict, std::optional<std::reference_wrapper<constraint>> reason) noexcept
@@ -105,16 +105,16 @@ namespace linspire
             assert(c != 0);
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0) / c; // the right-hand side of the constraint is the division of the negation of the known term minus an infinitesimal by the coefficient..
             if (is_positive(c))
-                return reason ? set_ub(x, c_right, reason.value()) : set_ub(x, c_right); // we are in the case `c * v < c_right`..
+                return set_ub(x, c_right, reason); // we are in the case `c * v < c_right`..
             else
-                return reason ? set_lb(x, c_right, reason.value()) : set_lb(x, c_right); // we are in the case `c * v > c_right`..
+                return set_lb(x, c_right, reason); // we are in the case `c * v > c_right`..
         }
         default: // the expression is still a general linear expression..
             const utils::inf_rational c_right = utils::inf_rational(-expr.known_term, strict ? -1 : 0);
             expr.known_term = utils::rational::zero;
             // we add the expression to the tableau, associating it with a new (slack) variable
             utils::var slack = new_var(std::move(expr));
-            return reason ? set_ub(slack, c_right, reason.value()) : set_ub(slack, c_right); // we are in the case `expr < c_right`..
+            return set_ub(slack, c_right, reason); // we are in the case `expr < c_right`..
         }
     }
     bool solver::new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict, std::optional<std::reference_wrapper<constraint>> reason) noexcept { return new_lt(rhs, lhs, strict, reason); }
