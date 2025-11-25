@@ -161,8 +161,9 @@ namespace linspire
      * the internal state of the solver to account for the new constraint.
      *
      * @param c The constraint to be added.
+     * @return true if the constraint was successfully added; false if it leads to inconsistency.
      */
-    void add_constraint(const constraint &c) noexcept;
+    [[nodiscard]] bool add_constraint(const constraint &c) noexcept;
 
     /**
      * @brief Retracts a previously added constraint from the solver.

@@ -2,6 +2,7 @@
 #include "logging.hpp"
 #include <algorithm>
 #include <cassert>
+#include <unordered_map>
 
 #ifdef LINSPIRE_ENABLE_LISTENERS
 #define FIRE_ON_VALUE_CHANGED(var)                                       \
@@ -119,12 +120,46 @@ namespace linspire
     }
     bool solver::new_gt(const utils::lin &lhs, const utils::lin &rhs, bool strict, std::optional<std::reference_wrapper<constraint>> reason) noexcept { return new_lt(rhs, lhs, strict, reason); }
 
-    void solver::add_constraint(const constraint &c) noexcept
+    bool solver::add_constraint(const constraint &c) noexcept
     {
-        for (const auto &[x, lb] : c.lbs)
-            vars[x].set_lb(lb, c);
-        for (const auto &[x, ub] : c.ubs)
-            vars[x].set_ub(ub, c);
+        struct staged_bounds
+        {
+            utils::inf_rational lb;
+            utils::inf_rational ub;
+        };
+        std::unordered_map<utils::var, staged_bounds> staged;
+        const auto ensure_entry = [this, &staged](const utils::var x) -> staged_bounds &
+        {
+            const auto it = staged.find(x);
+            if (it != staged.end())
+                return it->second;
+            const auto [inserted_it, _] = staged.emplace(x, staged_bounds{lb(x), ub(x)});
+            return inserted_it->second;
+        };
+
+        for (const auto &[x, lb_val] : c.lbs)
+        {
+            auto &entry = ensure_entry(x);
+            if (lb_val > entry.lb)
+                entry.lb = lb_val;
+            if (entry.lb > entry.ub)
+                return false;
+        }
+
+        for (const auto &[x, ub_val] : c.ubs)
+        {
+            auto &entry = ensure_entry(x);
+            if (ub_val < entry.ub)
+                entry.ub = ub_val;
+            if (entry.lb > entry.ub)
+                return false;
+        }
+
+        for (const auto &[x, lb_val] : c.lbs)
+            vars[x].set_lb(lb_val, c);
+        for (const auto &[x, ub_val] : c.ubs)
+            vars[x].set_ub(ub_val, c);
+        return true;
     }
 
     void solver::retract(const constraint &c) noexcept

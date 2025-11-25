@@ -215,7 +215,8 @@ void test_add_retract_readd_constraint()
     assert(s.ub(x) == utils::rational::positive_infinite);
 
     // Add the same constraint again
-    s.add_constraint(c0);
+    bool added_again = s.add_constraint(c0);
+    assert(added_again);
     cons = s.check();
     assert(cons);
     assert(s.lb(x) == 5);
@@ -270,6 +271,27 @@ void test_expression_bounds_and_match()
     assert(!s.match(expr_x, expr_far));
 }
 
+void test_add_constraint_inconsistency_detection()
+{
+    linspire::solver s;
+    auto x = s.new_var();
+
+    linspire::constraint c_lb;
+    bool lb_ok = s.new_gt({{x, 1}}, 5, false, c_lb);
+    assert(lb_ok);
+    s.retract(c_lb);
+
+    linspire::constraint c_ub;
+    bool ub_ok = s.new_lt({{x, 1}}, 1, false, c_ub);
+    assert(ub_ok);
+    assert(s.check());
+
+    bool add_ok = s.add_constraint(c_lb);
+    assert(!add_ok);
+    assert(s.lb(x) == utils::rational::negative_infinite);
+    assert(s.ub(x) == 1);
+}
+
 int main()
 {
     test_basic_eq_and_lt();
@@ -281,6 +303,7 @@ int main()
     test_constant_inequality_strictness();
     test_slack_variable_reuse_for_duplicate_expression();
     test_expression_bounds_and_match();
+    test_add_constraint_inconsistency_detection();
 
     return 0;
 }
