@@ -98,7 +98,7 @@ namespace linspire
         switch (expr.vars.size())
         {
         case 0: // the expression is a constant..
-            return is_negative(expr.known_term) || (strict && is_zero(expr.known_term));
+            return is_negative(expr.known_term) || (!strict && is_zero(expr.known_term));
         case 1: // the expression is a single variable..
         {
             const auto [x, c] = *expr.vars.cbegin();

@@ -12,7 +12,7 @@
  *
  * Assertions are used to ensure that each step behaves as expected.
  */
-void test0()
+void test_basic_eq_and_lt()
 {
     linspire::solver s;
     [[maybe_unused]] bool res0 = s.new_eq(0, 0);
@@ -43,7 +43,7 @@ void test0()
  *
  * Assertions are used to ensure that each step behaves as expected.
  */
-void test1()
+void test_detect_inconsistent_bounds()
 {
     linspire::solver s;
     auto x = s.new_var();
@@ -78,7 +78,7 @@ void test1()
  *
  * Assertions are used to ensure that each step behaves as expected.
  */
-void test2()
+void test_shared_reason_retraction()
 {
     linspire::solver s;
     auto x = s.new_var();
@@ -110,7 +110,7 @@ void test2()
  *
  * Assertions are used to ensure that each step behaves as expected.
  */
-void test3()
+void test_chained_retraction()
 {
     linspire::solver s;
     auto x = s.new_var();
@@ -150,7 +150,7 @@ void test3()
  *
  * Assertions are used to ensure that each step behaves as expected.
  */
-void test4()
+void test_conflict_explanation_generation()
 {
     linspire::solver s;
     auto x = s.new_var();
@@ -191,7 +191,7 @@ void test4()
  * - Retracting the constraint and ensuring bounds are reset.
  * - Adding the same constraint again and checking consistency.
  */
-void test5()
+void test_add_retract_readd_constraint()
 {
     linspire::solver s;
     auto x = s.new_var();
@@ -223,14 +223,64 @@ void test5()
     assert(s.val(x) >= 5);
 }
 
+void test_constant_inequality_strictness()
+{
+    linspire::solver s;
+
+    bool non_strict = s.new_lt(0, 0, false);
+    assert(non_strict);
+
+    bool strict = s.new_lt(0, 0, true);
+    assert(!strict);
+}
+
+void test_slack_variable_reuse_for_duplicate_expression()
+{
+    linspire::solver s;
+    auto x = s.new_var();
+    auto y = s.new_var();
+
+    auto slack1 = s.new_var(utils::lin{{x, 1}, {y, -1}});
+    auto slack2 = s.new_var(utils::lin{{x, 1}, {y, -1}});
+
+    assert(slack1 == slack2);
+    assert(s.lb(slack1) == utils::rational::negative_infinite);
+    assert(s.ub(slack1) == utils::rational::positive_infinite);
+}
+
+void test_expression_bounds_and_match()
+{
+    linspire::solver s;
+    auto x = s.new_var();
+
+    bool ge0 = s.new_gt({{x, 1}}, 0);
+    assert(ge0);
+    bool le10 = s.new_lt({{x, 1}}, 10);
+    assert(le10);
+    assert(s.check());
+
+    utils::lin expr_x{{{x, 1}}};
+    utils::lin expr_shifted{{{x, 1}}, -5};
+    utils::lin expr_far{{{x, 1}}, 20};
+
+    assert(s.lb(expr_shifted) == -5);
+    assert(s.ub(expr_shifted) == 5);
+
+    assert(s.match(expr_x, expr_shifted));
+    assert(!s.match(expr_x, expr_far));
+}
+
 int main()
 {
-    test0();
-    test1();
-    test2();
-    test3();
-    test4();
-    test5();
+    test_basic_eq_and_lt();
+    test_detect_inconsistent_bounds();
+    test_shared_reason_retraction();
+    test_chained_retraction();
+    test_conflict_explanation_generation();
+    test_add_retract_readd_constraint();
+    test_constant_inequality_strictness();
+    test_slack_variable_reuse_for_duplicate_expression();
+    test_expression_bounds_and_match();
 
     return 0;
 }
