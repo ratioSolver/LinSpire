@@ -284,7 +284,7 @@ namespace linspire
         assert(is_basic(x_i));
         assert(!is_basic(x_j));
         assert(tableau.at(x_i).vars.count(x_j));
-        assert(v >= lb(x_j) && v <= ub(x_j));
+        assert(v >= lb(x_i) && v <= ub(x_i));
 
         const auto theta = (v - val(x_i)) / tableau.at(x_i).vars.at(x_j);
         LOG_TRACE("x" << std::to_string(x_i) << " = " << utils::to_string(val(x_i)) << " -> " << utils::to_string(v) << " [" << utils::to_string(lb(x_i)) << ", " << utils::to_string(ub(x_i)) << "]");
@@ -294,6 +294,7 @@ namespace linspire
         LOG_TRACE("x" << std::to_string(x_j) << " = " << utils::to_string(val(x_j)) << " -> " << utils::to_string(val(x_j) + theta) << " [" << utils::to_string(lb(x_j)) << ", " << utils::to_string(ub(x_j)) << "]");
         // x_j += theta
         vars[x_j].val += theta;
+        assert(vars[x_j].val >= lb(x_j) && vars[x_j].val <= ub(x_j));
         FIRE_ON_VALUE_CHANGED(x_j);
 
         // the tableau rows containing `x_j` as a non-basic variable..
