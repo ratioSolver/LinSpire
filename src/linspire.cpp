@@ -31,7 +31,7 @@ namespace linspire
         if (const auto it = exprs.find(s_expr); it != exprs.cend()) // we already have a slack variable for this expression..
             return it->second;
         // we create a new slack variable for this expression..
-        utils::var slack = new_var(lb(l), ub(l));
+        utils::var slack = new_var();
         vars[slack].val = val(l);
         exprs.emplace(s_expr, slack);
         new_row(slack, std::move(l));
