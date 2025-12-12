@@ -38,8 +38,26 @@ namespace linspire
         return slack;
     }
 
-    utils::inf_rational solver::lb(const utils::var x) const noexcept { return vars[x].get_lb(); }
-    utils::inf_rational solver::ub(const utils::var x) const noexcept { return vars[x].get_ub(); }
+    utils::inf_rational solver::lb(const utils::var x) const noexcept
+    {
+        if (is_basic(x))
+        {
+            auto l = lb(tableau.at(x));
+            return l > vars[x].get_lb() ? l : vars[x].get_lb();
+        }
+        else
+            return vars[x].get_lb();
+    }
+    utils::inf_rational solver::ub(const utils::var x) const noexcept
+    {
+        if (is_basic(x))
+        {
+            auto u = ub(tableau.at(x));
+            return u < vars[x].get_ub() ? u : vars[x].get_ub();
+        }
+        else
+            return vars[x].get_ub();
+    }
     utils::inf_rational solver::val(const utils::var x) const noexcept { return vars[x].val; }
 
     bool solver::new_eq(const utils::lin &lhs, const utils::lin &rhs, std::optional<std::reference_wrapper<constraint>> reason) noexcept
