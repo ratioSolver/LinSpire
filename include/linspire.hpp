@@ -12,6 +12,9 @@ namespace linspire
   class solver
   {
     friend class constraint;
+#ifdef LINSPIRE_ENABLE_LISTENERS
+    friend class listener;
+#endif
 
   public:
     /**
@@ -210,27 +213,6 @@ namespace linspire
      */
     [[nodiscard]] bool match(const utils::lin &l0, const utils::lin &l1) const noexcept;
 
-#ifdef LINSPIRE_ENABLE_LISTENERS
-    /**
-     * @brief Adds a listener to the solver.
-     *
-     * This function registers a listener that will be notified of changes to variable values
-     * within the solver. The listener must implement the `listener` interface.
-     *
-     * @param l A reference to the listener to be added.
-     */
-    void add_listener(listener &l) noexcept;
-    /**
-     * @brief Removes a listener from the solver.
-     *
-     * This function unregisters a previously added listener from the solver. The listener will
-     * no longer receive notifications of variable value changes.
-     *
-     * @param l A reference to the listener to be removed.
-     */
-    void remove_listener(listener &l) noexcept;
-#endif
-
     friend std::string to_string(const solver &s) noexcept;
     friend json::json to_json(const solver &s) noexcept;
 
@@ -271,7 +253,30 @@ namespace linspire
   class listener
   {
   public:
+    explicit listener(solver &slv) noexcept : slv(slv) { slv.listeners.insert(this); }
+    virtual ~listener() noexcept
+    {
+      for (const auto &v : listened_vars)
+      {
+        slv.listening[v].erase(this);
+        if (slv.listening[v].empty())
+          slv.listening.erase(v);
+      }
+      slv.listeners.erase(this);
+    }
+
     virtual void on_value_changed(const utils::var v) noexcept = 0;
+
+  protected:
+    void listen(const utils::var v) noexcept
+    {
+      if (listened_vars.insert(v).second)
+        slv.listening[v].insert(this);
+    }
+
+  private:
+    solver &slv;
+    std::set<utils::var> listened_vars;
   };
 #endif
 

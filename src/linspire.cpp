@@ -426,11 +426,6 @@ namespace linspire
         tableau.emplace(x, std::move(l));
     }
 
-#ifdef LINSPIRE_ENABLE_LISTENERS
-    void solver::add_listener(listener &l) noexcept { listeners.insert(&l); }
-    void solver::remove_listener(listener &l) noexcept { listeners.erase(&l); }
-#endif
-
     std::string to_string(const solver &s) noexcept
     {
         std::string str;
